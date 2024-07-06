@@ -2,13 +2,13 @@
 #include <iostream>
 #include "stat_reader.h"
 #include <string>
-#include "tests.h"
+//#include "tests.h"
 
 using namespace std;
 using namespace transport_catalogue;
 
 int main() {
-    Tests();
+    //Tests();
 
     TransportCatalogue catalogue;
 
@@ -32,4 +32,6 @@ int main() {
         getline(cin, line);
         stat_reader::ParseAndPrintStat(catalogue, line, cout);
     }
+    cin.get();
+    cin.get();
 }

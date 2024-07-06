@@ -30,11 +30,9 @@ namespace transport_catalogue {
                 output << "Bus "s << bus_name << ": "s << "not found"s << endl;
                 return;
             }
-            int stops_number = GetStopsNumber(*bus);
-            int unique_stops_number = GetUniqueStopsNumber(*bus);    
-            double route_length = GetRouteLength(bus->stops);
-            output << "Bus "s << bus->name << ": "s << stops_number << " stops on route, "s << unique_stops_number << " unique stops, "s 
-            << std::fixed << std::setprecision(2) << route_length << " route length"s << endl;
+            RouteInfo route_info = GetRouteInfo(*bus);
+            output << "Bus "s << bus->name << ": "s << route_info.total_stops_number << " stops on route, "s << route_info.unique_stops_number << " unique stops, "s 
+            << std::fixed << std::setprecision(2) << route_info.route_length << " route length"s << endl;
         }
 
         void PrintBusesForStop(const TransportCatalogue& tansport_catalogue, string_view stop_name,
@@ -63,7 +61,7 @@ namespace transport_catalogue {
             } else if (query_type == QueryType::STOP) {
                 PrintBusesForStop(tansport_catalogue, request.substr(5, request.npos), output);
             } else {
-                output << "Unknown command"s << endl;
+                output << "Unknown command:"s << request << endl;
             }
         }
 

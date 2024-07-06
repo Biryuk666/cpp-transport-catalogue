@@ -108,32 +108,20 @@ namespace transport_catalogue {
             }
         }
 
-        void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) const {
-            vector<const CommandDescription*> commands_buffer;
+        void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& transport_catalogue) {
+            sort(commands_.begin(), commands_.end(), [](const auto& lhs, const auto& rhs) {
+                return lhs.command > rhs.command;
+            });
 
             for (const auto& command : commands_) {
                 if (GetQueryType(command.command) == QueryType::STOP) {
-                    auto [latitude, longitude] = ParseCoordinates(command.description);
-                    TransportCatalogue::Stop new_stop{command.id, latitude, longitude};
-                    catalogue.AddStop(move(new_stop));
+                    Coordinates coordinates = ParseCoordinates(command.description);
+                    transport_catalogue.AddStop(command.id, move(coordinates));
                 } else if (GetQueryType(command.command) == QueryType::BUS) {
-                    commands_buffer.push_back(&command);
-                }
-            }
-
-            for (const auto& command : commands_buffer) {
-                TransportCatalogue::Bus new_bus;
-                new_bus.name = command->id;
-
-                auto stops = ParseRoute(command->description);
-                for (const auto& stop : stops) {
-                    new_bus.stops.push_back(catalogue.GetStop(stop));
-                }
-                catalogue.AddBus(move(new_bus));
-
-                for (const auto& stop : stops) {
-                    auto bus_name = command->id;
-                    catalogue.AddBusesForStop(catalogue.GetStop(stop)->name, catalogue.GetBus(bus_name));
+                    auto stops = ParseRoute(command.description);
+                    transport_catalogue.AddBus(command.id, stops);
+                } else {
+                    cout << "Unknown command:"s << command.command << endl;
                 }
             }
         }

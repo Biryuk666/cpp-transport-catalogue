@@ -18,28 +18,33 @@ namespace transport_catalogue {
 
             struct Stop {
                 std::string name;
-                double latitude, longitude;
+                Coordinates coordinates;
             };
 
             struct Bus {
                 std::string name;
                 std::vector<const Stop*> stops;
-
-                bool operator<(const Bus& other) const;
-            };
+             };
             
-            void AddBus(Bus&& bus);
-            void AddStop(Stop&& stop);
+            void AddBus(const std::string& bus_name, std::vector<std::string_view>& stops);
+            void AddStop(const std::string& stop_name, Coordinates&& coordinates);
             void AddBusesForStop(std::string_view stop_name, const Bus* bus);
                     
             const Bus* GetBus(const std::string_view& bus_name) const;
             const Stop* GetStop(const std::string_view& stop_name) const;
 
-            struct BusNameCmp {
-                bool operator()(const Bus* lhs, const Bus* rhs) const;
+            struct Comporator {
+                bool operator()(const TransportCatalogue::Bus* lhs, const TransportCatalogue::Bus* rhs) const;
+            };
+        
+            struct Hasher {
+                size_t operator()(const TransportCatalogue::Bus* bus) const;
+
+                private:
+                    std::hash<char> c_hasher;
             };
 
-            std::optional<std::set<const Bus*, BusNameCmp>> GetBusesForStop(const std::string_view& stop_name) const;
+            std::optional<std::set<const Bus*, Comporator>> GetBusesForStop(const std::string_view& stop_name) const;
             
 
             private:
@@ -47,11 +52,21 @@ namespace transport_catalogue {
             std::deque<Bus> buses_;
             std::deque<Stop> stops_;
             std::unordered_map<std::string_view, const Stop*> stops_pointers_;
-            std::unordered_map<std::string_view, const Bus*> buses_pointers_;        
-            std::unordered_map<std::string_view, std::set<const Bus*, BusNameCmp>> buses_for_stop_;
+            std::unordered_map<std::string_view, const Bus*> buses_pointers_;
+            // Считаю, что std::set в данном случае более подходящий, поскольку, для вывода информации о остановке, требуется отсортированный
+            // по имени автобуса контейнер с уникальными объектами. Unordered_set в свою очередь предпологает
+            // дальнейшие операции по сортировке, что увеличит затраты по используемой памяти, при той же временной сложности.
+            std::unordered_map<std::string_view, std::set<const Bus*, Comporator>> buses_for_stop_;
         };
 
-        int GetUniqueStopsNumber(const TransportCatalogue::Bus& bus);
-        int GetStopsNumber(const TransportCatalogue::Bus& bus);
-        double GetRouteLength(std::vector<const TransportCatalogue::Stop*> stops);
-}
+        struct RouteInfo {
+
+            int total_stops_number;
+            int unique_stops_number;
+            double route_length;
+
+        };
+
+        RouteInfo GetRouteInfo(const TransportCatalogue::Bus& bus);
+
+} // end of namespace transport_catalogue

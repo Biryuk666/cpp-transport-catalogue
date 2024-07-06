@@ -1,3 +1,4 @@
+#include <iostream>
 #include <algorithm>
 #include "transport_catalogue.h"
 #include <utility>
@@ -6,13 +7,22 @@ using namespace std;
 
 namespace transport_catalogue {
 
-    void TransportCatalogue::AddBus(Bus&& bus) {
-        buses_.push_back(move(bus));
+    void TransportCatalogue::AddBus(const string& bus_name, vector<string_view>& stops) {
+        Bus new_bus;
+        new_bus.name = bus_name;
+        for (const auto& stop : stops) {
+            new_bus.stops.push_back(GetStop(stop));
+        }
+        buses_.push_back(move(new_bus));
         buses_pointers_[buses_.back().name] = &buses_.back();
+        for (const auto& stop : stops) {
+            AddBusesForStop(GetStop(stop)->name, &buses_.back());
+        }
     }
 
-    void TransportCatalogue::AddStop(Stop&& stop) {
-        stops_.push_back(move(stop));
+    void TransportCatalogue::AddStop(const string& stop_name, Coordinates&& coordinates) {
+        TransportCatalogue::Stop new_stop{stop_name, move(coordinates)};
+        stops_.push_back(move(new_stop));
         stops_pointers_[stops_.back().name] = &stops_.back();
     }
 
@@ -35,19 +45,26 @@ namespace transport_catalogue {
         return stops_pointers_.at(stop_name);
     }
 
-    optional<set<const TransportCatalogue::Bus*, TransportCatalogue::BusNameCmp>> TransportCatalogue::GetBusesForStop(const std::string_view& stop_name) const {
+    optional<set<const TransportCatalogue::Bus*, TransportCatalogue::Comporator>> TransportCatalogue::GetBusesForStop(const std::string_view& stop_name) const {
         if (buses_for_stop_.count(stop_name) == 0) {
             return nullopt;
         }
         return buses_for_stop_.at(stop_name);
     }
 
-    bool TransportCatalogue::Bus::operator<(const Bus& other) const {
+    /*bool TransportCatalogue::Bus::operator<(const Bus& other) const {
         return name < other.name;
-    }
+    }*/
+    bool TransportCatalogue::Comporator::operator()(const TransportCatalogue::Bus* lhs, const TransportCatalogue::Bus* rhs) const {
+                return lhs->name < rhs->name;
+            }
 
-    bool TransportCatalogue::BusNameCmp::operator()(const Bus* lhs, const Bus* rhs) const {
-        return *lhs < *rhs;
+    size_t TransportCatalogue::Hasher::operator()(const TransportCatalogue::Bus* bus) const {
+        size_t result = 0;
+        for (char c : bus->name) {
+            result += static_cast<size_t>(c_hasher(c)) * 17 * 17;
+        }
+        return result;
     }
 
     int GetUniqueStopsNumber(const TransportCatalogue::Bus& bus) {
@@ -55,11 +72,10 @@ namespace transport_catalogue {
         for (const auto& stop : bus.stops) {
             unique_stops.insert(stop->name);
         }
-
         return static_cast<int>(unique_stops.size());
     }
 
-    int GetStopsNumber(const TransportCatalogue::Bus& bus) {
+    int GetTotalStopsNumber(const TransportCatalogue::Bus& bus) {
         return static_cast<int>(bus.stops.size());
     }
 
@@ -69,14 +85,16 @@ namespace transport_catalogue {
             if (i == stops.size() - 1) {
                 break;
             }
-            Coordinates from, to;
-            from.lat = stops[i]->latitude;
-            from.lng = stops[i]->longitude;
-            to.lat = stops[i + 1]->latitude;
-            to.lng = stops[i + 1]->longitude;
-            result += ComputeDistance(from, to);
+            result += ComputeDistance(stops[i]->coordinates, stops[i + 1]->coordinates);
         }
         return result;
+    }
+
+    RouteInfo GetRouteInfo(const TransportCatalogue::Bus& bus) {
+        int total_stops_number = GetTotalStopsNumber(bus);
+        int unique_stops_number = GetUniqueStopsNumber(bus);
+        double route_length = GetRouteLength(bus.stops);
+        return {total_stops_number, unique_stops_number, route_length};
     }
 
 } // end of namespace transport_catalogue
