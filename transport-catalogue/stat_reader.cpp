@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <deque>
 #include "geo.h"
 #include "input_reader.h"
@@ -46,9 +47,15 @@ namespace transport_catalogue {
                 output << "Stop "s << stop_name << ": no buses"s << endl;
                 return;
             }
-            output << "Stop "s << stop_name << ": buses"s;
+            
+            set<string_view> buses_names;
             for (const auto& bus : *buses) {
-                output << " "s << bus->name; 
+                buses_names.insert(bus->name);
+            }
+
+            output << "Stop "s << stop_name << ": buses"s;
+            for (const auto& name : buses_names) {
+                output << " "s << name; 
             }
             output << endl;
         }

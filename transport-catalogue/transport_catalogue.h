@@ -33,18 +33,7 @@ namespace transport_catalogue {
             const Bus* GetBus(const std::string_view& bus_name) const;
             const Stop* GetStop(const std::string_view& stop_name) const;
 
-            struct Comporator {
-                bool operator()(const TransportCatalogue::Bus* lhs, const TransportCatalogue::Bus* rhs) const;
-            };
-        
-            struct Hasher {
-                size_t operator()(const TransportCatalogue::Bus* bus) const;
-
-                private:
-                    std::hash<char> c_hasher;
-            };
-
-            std::optional<std::set<const Bus*, Comporator>> GetBusesForStop(const std::string_view& stop_name) const;
+            std::optional<std::unordered_set<const Bus*>> GetBusesForStop(const std::string_view& stop_name) const;
             
 
             private:
@@ -53,10 +42,7 @@ namespace transport_catalogue {
             std::deque<Stop> stops_;
             std::unordered_map<std::string_view, const Stop*> stops_pointers_;
             std::unordered_map<std::string_view, const Bus*> buses_pointers_;
-            // Считаю, что std::set в данном случае более подходящий, поскольку, для вывода информации о остановке, требуется отсортированный
-            // по имени автобуса контейнер с уникальными объектами. Unordered_set в свою очередь предпологает
-            // дальнейшие операции по сортировке, что увеличит затраты по используемой памяти, при той же временной сложности.
-            std::unordered_map<std::string_view, std::set<const Bus*, Comporator>> buses_for_stop_;
+            std::unordered_map<std::string_view, std::unordered_set<const Bus*>> buses_for_stop_;
         };
 
         struct RouteInfo {

@@ -27,6 +27,9 @@ namespace transport_catalogue {
     }
 
     void TransportCatalogue::AddBusesForStop(std::string_view stop_name, const TransportCatalogue::Bus* bus) {
+        if (buses_for_stop_.count(stop_name) != 0 && buses_for_stop_.at(stop_name).count(bus) != 0) {
+            return;
+        }
         buses_for_stop_[stop_name].insert(bus);
     }
 
@@ -45,26 +48,11 @@ namespace transport_catalogue {
         return stops_pointers_.at(stop_name);
     }
 
-    optional<set<const TransportCatalogue::Bus*, TransportCatalogue::Comporator>> TransportCatalogue::GetBusesForStop(const std::string_view& stop_name) const {
+    optional<unordered_set<const TransportCatalogue::Bus*>> TransportCatalogue::GetBusesForStop(const std::string_view& stop_name) const {
         if (buses_for_stop_.count(stop_name) == 0) {
             return nullopt;
         }
         return buses_for_stop_.at(stop_name);
-    }
-
-    /*bool TransportCatalogue::Bus::operator<(const Bus& other) const {
-        return name < other.name;
-    }*/
-    bool TransportCatalogue::Comporator::operator()(const TransportCatalogue::Bus* lhs, const TransportCatalogue::Bus* rhs) const {
-                return lhs->name < rhs->name;
-            }
-
-    size_t TransportCatalogue::Hasher::operator()(const TransportCatalogue::Bus* bus) const {
-        size_t result = 0;
-        for (char c : bus->name) {
-            result += static_cast<size_t>(c_hasher(c)) * 17 * 17;
-        }
-        return result;
     }
 
     int GetUniqueStopsNumber(const TransportCatalogue::Bus& bus) {

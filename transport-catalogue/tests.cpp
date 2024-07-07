@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include "tests.h"
+#include "transport_catalogue.h"
 
 using namespace std;
 using namespace transport_catalogue;
@@ -11,8 +12,8 @@ void TertGetRouteLength() {
         TransportCatalogue::Bus bus;
         bus.stops.push_back(&stop1);
         bus.stops.push_back(&stop2);
-        auto route_length = GetRouteLength(bus.stops);
-        assert(route_length < 130 && route_length > 129.5);        
+        auto route_info = GetRouteInfo(bus);
+        assert(route_info.route_length < 130 && route_info.route_length > 129.5);        
 }
 
 void Tests() {
