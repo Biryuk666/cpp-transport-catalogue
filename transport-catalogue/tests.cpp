@@ -23,7 +23,7 @@ void TestDuration() {
     {
         LOG_DURATION("Add Stop");
         for (int i = 1; i < 101; ++i) {
-            catalogue.AddStop("stop" + i, {55.85623777240991, 38.965963307835146});
+            catalogue.AddStop("stop" + std::to_string(i), {55.85623777240991, 38.965963307835146});
         }
     }
 
@@ -31,21 +31,21 @@ void TestDuration() {
         vector<string_view> stops {"stop1", "stop2", "stop3", "stop4"};
         LOG_DURATION("Add Bus");
         for (int i = 1; i < 101; ++i) {
-            catalogue.AddBus("bus" + i, stops);
+            catalogue.AddBus("bus" + std::to_string(i), stops);
         }
     }
 
     {
         LOG_DURATION("Get Bus");
         for (int i = 1; i < 101; ++i) {
-            catalogue.GetBus("bus" + i);
+            catalogue.GetBus("bus" + std::to_string(i));
         }
     }
 
     {
         LOG_DURATION("Get Stop");
         for (int i = 1; i < 101; ++i) {
-            catalogue.GetStop("stop" + i);
+            catalogue.GetStop("stop" + std::to_string(i));
         }
     }
 
@@ -58,13 +58,13 @@ void TestDuration() {
         }
     }
 
-    /*{ //тест сломан
+    {
         const TransportCatalogue::Bus* bus = catalogue.GetBus("bus1");
         LOG_DURATION("Get Route Info");
         for (int i = 1; i < 101; ++i) {
             catalogue.GetRouteInfo(bus);
         }
-    }*/
+    }
 
     {
         const TransportCatalogue::Stop* from = catalogue.GetStop("stop10");
