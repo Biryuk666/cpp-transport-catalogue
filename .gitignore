@@ -1,6 +1,6 @@
 # vs code files
 **/.vscode
-**/.build
+**/build
 
 # Prerequisites
 *.d

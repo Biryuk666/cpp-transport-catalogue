@@ -3,6 +3,8 @@
 #include "transport_catalogue.h"
 #include <utility>
 
+#include "log_duration.h"
+
 using namespace std;
 
 namespace transport_catalogue {
@@ -55,6 +57,10 @@ namespace transport_catalogue {
         return buses_for_stop_.at(stop_name);
     }
 
+    void TransportCatalogue::SetDistance(const TransportCatalogue::Stop* from, const TransportCatalogue::Stop* to, size_t distance) {
+        distance_between_stops_[{from, to}] = distance;
+    }
+
     int GetUniqueStopsNumber(const TransportCatalogue::Bus& bus) {
         unordered_set<string_view> unique_stops;
         for (const auto& stop : bus.stops) {
@@ -67,7 +73,7 @@ namespace transport_catalogue {
         return static_cast<int>(bus.stops.size());
     }
 
-    double GetRouteLength(std::vector<const TransportCatalogue::Stop*> stops) {
+    double GetRouteLengthGeo(std::vector<const TransportCatalogue::Stop*> stops) {
         double result = 0;
         for (size_t i = 0; i < stops.size(); ++i) {
             if (i == stops.size() - 1) {
@@ -78,11 +84,63 @@ namespace transport_catalogue {
         return result;
     }
 
-    RouteInfo GetRouteInfo(const TransportCatalogue::Bus& bus) {
-        int total_stops_number = GetTotalStopsNumber(bus);
-        int unique_stops_number = GetUniqueStopsNumber(bus);
-        double route_length = GetRouteLength(bus.stops);
-        return {total_stops_number, unique_stops_number, route_length};
+    size_t TransportCatalogue::GetDistance(const TransportCatalogue::Stop* from, const TransportCatalogue::Stop* to) const {
+        if (distance_between_stops_.count({from, to}) != 0) {
+            return distance_between_stops_.at({from, to});
+        } else if (distance_between_stops_.count({to, from}) != 0) {
+            return distance_between_stops_.at({to, from});
+        }
+        return 0;
     }
+
+    size_t GetRouteLength(const TransportCatalogue& transport_catalogue, std::vector<const TransportCatalogue::Stop*> stops) {
+        size_t result = 0;
+        for (size_t i = 0; i < stops.size() - 1; ++i) {
+            result += transport_catalogue.GetDistance(stops[i], stops[i + 1]);
+        }
+        return result;
+    }
+
+    TransportCatalogue::RouteInfo TransportCatalogue::GetRouteInfo(const TransportCatalogue::Bus* bus) const {
+        int total_stops_number = GetTotalStopsNumber(*bus);
+        int unique_stops_number = GetUniqueStopsNumber(*bus);
+        size_t route_length = GetRouteLength(*this, bus->stops);
+        double route_length_geo = GetRouteLengthGeo(bus->stops);
+        double route_curvature = static_cast<double>(route_length) / route_length_geo;
+
+        return {total_stops_number, unique_stops_number, route_length, route_curvature};
+    }
+
+    /*void TransportCatalogue::GetRouteInfoTest(const TransportCatalogue::Bus* bus) const {
+        {
+            LOG_DURATION("Get Total Stops Number");
+            for (int i = 1; i < 101; ++i) {
+                GetTotalStopsNumber(*bus);
+            }
+        }
+
+        {
+            LOG_DURATION("Get Unique Stops Number");
+            for (int i = 1; i < 101; ++i) {
+                GetUniqueStopsNumber(*bus);
+            }
+        }
+
+        {
+            LOG_DURATION("Get Route Length");
+            for (int i = 1; i < 101; ++i) {
+                GetRouteLength(*this, bus->stops);
+            }
+        }
+
+        {
+            LOG_DURATION("Get Route Length Geo");
+            for (int i = 1; i < 101; ++i) {
+                GetRouteLengthGeo(bus->stops);
+            }
+        }
+    }*/
+    
+    
 
 } // end of namespace transport_catalogue

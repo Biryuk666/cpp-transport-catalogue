@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cassert>
 #include <iterator>
+#include <string>
 #include <utility>
 
 using namespace std;
@@ -24,9 +25,10 @@ namespace transport_catalogue {
             }
 
             auto not_space2 = str.find_first_not_of(' ', comma + 1);
+            auto comma2 = str.find(',', comma + 1);
 
             double lat = stod(string(str.substr(not_space, comma - not_space)));
-            double lng = stod(string(str.substr(not_space2)));
+            double lng = stod(string(str.substr(not_space2, comma2 - not_space2)));
 
             return {lat, lng};
         }
@@ -108,13 +110,24 @@ namespace transport_catalogue {
             }
         }
 
+        pair<string_view, size_t> ParseDistance(const string_view& data) {
+            auto start_pos = data.find_first_not_of(' ');
+            auto m_pos = data.find('m', start_pos);
+            size_t distance = stoull(static_cast<string>(data.substr(start_pos, m_pos - start_pos)));
+            auto to_pos = data.find_first_not_of(' ', m_pos + 1);
+            string_view stop_name = data.substr(data.find_first_not_of(' ', to_pos + 2));
+            return {stop_name, distance};
+        }
+
         void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& transport_catalogue) {
             sort(commands_.begin(), commands_.end(), [](const auto& lhs, const auto& rhs) {
                 return lhs.command > rhs.command;
             });
+            vector<const CommandDescription*> buffer;
 
             for (const auto& command : commands_) {
                 if (GetQueryType(command.command) == QueryType::STOP) {
+                    buffer.push_back(&command);
                     Coordinates coordinates = ParseCoordinates(command.description);
                     transport_catalogue.AddStop(command.id, move(coordinates));
                 } else if (GetQueryType(command.command) == QueryType::BUS) {
@@ -122,6 +135,15 @@ namespace transport_catalogue {
                     transport_catalogue.AddBus(command.id, stops);
                 } else {
                     cout << "Unknown command:"s << command.command << endl;
+                }
+            }
+            for (const auto& command : buffer) {
+                auto data = Split(command->description, ',');
+                if (data.size() > 2) {
+                    for (size_t i = 2; i < data.size(); ++i) {
+                        auto distance = ParseDistance(data[i]);
+                        transport_catalogue.SetDistance(transport_catalogue.GetStop(command->id), transport_catalogue.GetStop(distance.first), distance.second);
+                    }
                 }
             }
         }

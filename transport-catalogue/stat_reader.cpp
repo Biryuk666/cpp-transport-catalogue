@@ -31,9 +31,9 @@ namespace transport_catalogue {
                 output << "Bus "s << bus_name << ": "s << "not found"s << endl;
                 return;
             }
-            RouteInfo route_info = GetRouteInfo(*bus);
+            const auto route_info = tansport_catalogue.GetRouteInfo(bus);
             output << "Bus "s << bus->name << ": "s << route_info.total_stops_number << " stops on route, "s << route_info.unique_stops_number << " unique stops, "s 
-            << std::fixed << std::setprecision(2) << route_info.route_length << " route length"s << endl;
+            << route_info.route_length << " route length, "s << route_info.route_curvature << " curvature"s << endl;
         }
 
         void PrintBusesForStop(const TransportCatalogue& tansport_catalogue, string_view stop_name,
