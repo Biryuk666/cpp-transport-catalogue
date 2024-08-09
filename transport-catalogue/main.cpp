@@ -1,6 +1,8 @@
-#include "input_reader.h"
+//#include "input_reader.h"
 #include <iostream>
-#include "stat_reader.h"
+#include "json.h"
+#include "json_reader.h"
+//#include "stat_reader.h"
 #include <string>
 //#include "tests.h"
 
@@ -8,9 +10,14 @@ using namespace std;
 using namespace transport_catalogue;
 
 int main() {
+    TransportCatalogue catalogue;
+    json_reader::JsonReader reader;
+    reader.RequestProcess(catalogue, cin, cout);
+
+
     //Tests();
 
-    TransportCatalogue catalogue;
+    /*TransportCatalogue catalogue;
 
     int base_request_count;
     cin >> base_request_count >> ws;
@@ -33,5 +40,5 @@ int main() {
         stat_reader::ParseAndPrintStat(catalogue, line, cout);
     }
     cin.get();
-    cin.get();
+    cin.get();*/
 }

@@ -14,7 +14,7 @@ namespace transport_catalogue {
         /**
          * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
          */
-        Coordinates ParseCoordinates(string_view str) {
+        geo::Coordinates ParseCoordinates(string_view str) {
             static const double nan = std::nan("");
 
             auto not_space = str.find_first_not_of(' ');
@@ -110,10 +110,10 @@ namespace transport_catalogue {
             }
         }
 
-        pair<string_view, size_t> ParseDistance(const string_view& data) {
+        pair<string_view, int> ParseDistance(const string_view& data) {
             auto start_pos = data.find_first_not_of(' ');
             auto m_pos = data.find('m', start_pos);
-            size_t distance = stoull(static_cast<string>(data.substr(start_pos, m_pos - start_pos)));
+            int distance = stoi(static_cast<string>(data.substr(start_pos, m_pos - start_pos)));
             auto to_pos = data.find_first_not_of(' ', m_pos + 1);
             string_view stop_name = data.substr(data.find_first_not_of(' ', to_pos + 2));
             return {stop_name, distance};
@@ -128,7 +128,7 @@ namespace transport_catalogue {
             for (const auto& command : commands_) {
                 if (GetQueryType(command.command) == QueryType::STOP) {
                     buffer.push_back(&command);
-                    Coordinates coordinates = ParseCoordinates(command.description);
+                    geo::Coordinates coordinates = ParseCoordinates(command.description);
                     transport_catalogue.AddStop(command.id, move(coordinates));
                 } else if (GetQueryType(command.command) == QueryType::BUS) {
                     auto stops = ParseRoute(command.description);
@@ -141,8 +141,8 @@ namespace transport_catalogue {
                 auto data = Split(command->description, ',');
                 if (data.size() > 2) {
                     for (size_t i = 2; i < data.size(); ++i) {
-                        auto distance = ParseDistance(data[i]);
-                        transport_catalogue.SetDistance(transport_catalogue.GetStop(command->id), transport_catalogue.GetStop(distance.first), distance.second);
+                        auto [stop_name, distance] = ParseDistance(data[i]);
+                        transport_catalogue.SetDistance(transport_catalogue.GetStop(command->id), transport_catalogue.GetStop(stop_name), distance);
                     }
                 }
             }

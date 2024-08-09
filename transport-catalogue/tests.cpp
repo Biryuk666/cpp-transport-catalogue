@@ -50,8 +50,8 @@ void TestDuration() {
     }
 
     {   
-        const TransportCatalogue::Stop* from = catalogue.GetStop("stop1");
-        const TransportCatalogue::Stop* to = catalogue.GetStop("stop2");
+        const domain::Stop* from = catalogue.GetStop("stop1");
+        const domain::Stop* to = catalogue.GetStop("stop2");
         LOG_DURATION("Set Distance");
         for (int i = 1; i < 101; ++i) {
             catalogue.SetDistance(from, to, 10000);
@@ -59,7 +59,7 @@ void TestDuration() {
     }
 
     {
-        const TransportCatalogue::Bus* bus = catalogue.GetBus("bus1");
+        const domain::Bus* bus = catalogue.GetBus("bus1");
         LOG_DURATION("Get Route Info");
         for (int i = 1; i < 101; ++i) {
             catalogue.GetRouteInfo(bus);
@@ -67,8 +67,8 @@ void TestDuration() {
     }
 
     {
-        const TransportCatalogue::Stop* from = catalogue.GetStop("stop10");
-        const TransportCatalogue::Stop* to = catalogue.GetStop("stop11");
+        const domain::Stop* from = catalogue.GetStop("stop10");
+        const domain::Stop* to = catalogue.GetStop("stop11");
         LOG_DURATION("Get Distance");
         for (int i = 1; i < 101; ++i) {
             catalogue.GetDistance(from, to);
