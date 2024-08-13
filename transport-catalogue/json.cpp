@@ -326,15 +326,8 @@ Document Load(istream& input) {
 const Node::Value& Node::GetValue() const {
     return value_;
 }
-void Print(const Document& doc, std::ostream& out) {
-    PrintNode(doc.GetRoot(), out);
-}
 
-void PrintNode(const Node& node, std::ostream& out) {
-    std::visit(ValuePrinter{out, 4, 0}, node.GetValue());
-} 
-
-void PrintString(std::string value, std::ostream& out){    
+void PrintString(std::string value, std::ostream& out){
     out << '"';
     for (const char& ch : value) {
         switch (ch) {
@@ -361,68 +354,72 @@ void PrintString(std::string value, std::ostream& out){
     out << '"';
 }
 
-std::ostream& ValuePrinter::operator()(std::nullptr_t) {
-    PrintContext context{output, indent_step, indent};
-    context.PrintIndent();
-    context.out << "null"sv;
-
-    return context.out;
-}
-
-std::ostream& ValuePrinter::operator()(Array array) {
-    PrintContext context{output, indent_step, indent};
-    context.out << "[\n"sv;
-    bool is_first = true;
-    for (const auto& node : array) {
-        if (!is_first) {
-            context.out << ",\n"sv;
+void PrintValue (const Array& nodes, const PrintContext& context) {
+    std::ostream& out = context.out;
+    out << "[\n"sv;
+    bool first = true;
+    auto inner_context = context.Indented();
+    for (const Node& node : nodes) {
+        if (first) {
+            first = false;
+        } else {
+            out << ",\n"sv;
         }
-        context.PrintIndent();
-        PrintNode(node, context.out);
-        is_first = false;
+        inner_context.PrintIndent();
+        PrintNode(node, inner_context);
     }
-    context.out << "\n"sv;
+    out.put('\n');
     context.PrintIndent();
-    context.out << "]"sv;
-
-    return context.out;
+    out.put(']');
 }
 
-std::ostream& ValuePrinter::operator()(bool value) {
-    PrintContext context{output, indent_step, indent};
-    context.PrintIndent();
+void PrintValue(const bool& value, const PrintContext& context) {
     context.out << boolalpha << value;
-
-    return context.out;
 }
 
-std::ostream& ValuePrinter::operator()(Dict dict) {
-    PrintContext context{output, indent_step, indent};
-    context.out << "{\n"sv;
-    bool is_first = true;
-    for (const auto& pair : dict) {
-        if (!is_first) {
-            context.out << ",\n"sv;
+void PrintValue(const Dict& nodes, const PrintContext& context) {
+    std::ostream& out = context.out;
+    out << "{\n"sv;
+    bool first = true;
+    auto inner_context = context.Indented();
+    for (const auto& [key, node] : nodes) {
+        if (first) {
+            first = false;
+        } else {
+            out << ",\n"sv;
         }
-    context.PrintIndent();
-    PrintString(pair.first, context.out);
-    context.out << ": "sv;
-    PrintNode(pair.second, context.out);
-    is_first = false;
+        inner_context.PrintIndent();
+        PrintString(key, context.out);
+        out << ": "sv;
+        PrintNode(node, inner_context);
     }
-    context.out << "\n"sv;
+    out.put('\n');
     context.PrintIndent();
-    context.out << "}"sv;
-
-    return context.out;
+    out.put('}');
 }
 
-std::ostream& ValuePrinter::operator()(std::string value) {
-    PrintContext context{output, indent_step, indent};
-    context.PrintIndent();
-    PrintString(value, context.out);
+void PrintValue(const std::nullptr_t&, const PrintContext& context) {
+    context.out << "null"sv;
+}
 
-    return context.out ;
+void PrintValue(const std::string& value, const PrintContext& context) {
+    PrintString(value, context.out);
+}
+
+template <typename Value>
+void PrintValue(const Value& value, const PrintContext& context) {
+    context.out << value;
+}
+
+void PrintNode(const Node& node, PrintContext& context) {
+    std::visit(
+        [&context](const auto& value){ PrintValue(value, context); },
+        node.GetValue());
+} 
+
+void Print(const Document& doc, std::ostream& out) {
+    PrintContext context{out};
+    PrintNode(doc.GetRoot(), context);
 }
 
 }  // namespace json

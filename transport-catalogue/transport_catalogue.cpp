@@ -1,5 +1,6 @@
-#include <iostream>
 #include <algorithm>
+#include <iostream>
+#include <numeric>
 #include "transport_catalogue.h"
 #include <utility>
 
@@ -109,14 +110,14 @@ namespace transport_catalogue {
         return 0;
     }
 
-    int GetRouteLength(const TransportCatalogue& transport_catalogue, vector<const domain::Stop*> stops, bool is_roundtrip) {
+    int TransportCatalogue::GetRouteLength(const vector<const domain::Stop*>& stops, bool is_roundtrip) const {
         int result = 0;
         for (size_t i = 0; i < stops.size() - 1; ++i) {
-            result += transport_catalogue.GetDistance(stops[i], stops[i + 1]);
+            result += GetDistance(stops[i], stops[i + 1]);
         }
         if (!is_roundtrip) {
             for (size_t i = stops.size() - 1; i > 0; --i) {
-                result += transport_catalogue.GetDistance(stops[i], stops[i - 1]);
+                result += GetDistance(stops[i], stops[i - 1]);
             }
         }
         return result;
@@ -125,18 +126,22 @@ namespace transport_catalogue {
     domain::RouteInfo TransportCatalogue::GetRouteInfo(const domain::Bus* bus) const {
         int total_stops_number = GetTotalStopsNumber(*bus);
         int unique_stops_number = GetUniqueStopsNumber(*bus);
-        int route_length = GetRouteLength(*this, bus->stops, bus->is_roundtrip);
+        int route_length = GetRouteLength(bus->stops, bus->is_roundtrip);
         double route_length_geo = GetRouteLengthGeo(bus->stops) * (bus->is_roundtrip ? 1 : 2);
         double route_curvature = static_cast<double>(route_length) / route_length_geo;
 
         return {total_stops_number, unique_stops_number, route_length, route_curvature};
     }
 
+    const map<string_view, const domain::Bus*>* TransportCatalogue::GetBusesList() const {
+        return &buses_pointers_;
+    }
+
     size_t detail::PairHasher::operator()(const std::pair<const domain::Stop*, const domain::Stop*> pair_of_stops) const noexcept {
         return hasher_(pair_of_stops.first) * 17 + hasher_(pair_of_stops.second);
     }
 
-    /*void TransportCatalogue::GetRouteInfoTest(const TransportCatalogue::Bus* bus) const {
+    /*void TransportCatalogue::GetRouteInfoTest(const domain::Bus* bus) const {
         {
             LOG_DURATION("Get Total Stops Number");
             for (int i = 1; i < 101; ++i) {
@@ -154,7 +159,7 @@ namespace transport_catalogue {
         {
             LOG_DURATION("Get Route Length");
             for (int i = 1; i < 101; ++i) {
-                GetRouteLength(*this, bus->stops);
+                GetRouteLength(bus->stops, bus->is_roundtrip);
             }
         }
 

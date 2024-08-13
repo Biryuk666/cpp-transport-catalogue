@@ -2,7 +2,6 @@
 
 #include <deque>
 #include "domain.h"
-#include "geo.h"
 #include <map>
 #include <optional>
 #include <set>
@@ -44,19 +43,20 @@ namespace transport_catalogue {
             
             domain::RouteInfo GetRouteInfo(const domain::Bus* bus) const;
 
+            const std::map<std::string_view, const domain::Bus*>* GetBusesList() const;
+
             //тест производительности внутренних методов GetRouteInfo
-            //void GetRouteInfoTest(const Bus* bus) const; 
+            //void GetRouteInfoTest(const domain::Bus* bus) const; 
 
         private:
-
-            
-
             std::deque<domain::Bus> buses_;
             std::deque<domain::Stop> stops_;
             std::unordered_map<std::string_view, const domain::Stop*> stops_pointers_;
-            std::unordered_map<std::string_view, const domain::Bus*> buses_pointers_;
+            std::map<std::string_view, const domain::Bus*> buses_pointers_;
             std::unordered_map<std::string_view, std::unordered_set<const domain::Bus*>> buses_for_stop_;
             std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher> distance_between_stops_;
+
+            int GetRouteLength(const std::vector<const domain::Stop*>& stops, bool is_roundtrip) const;
         };
 
 } // end of namespace transport_catalogue

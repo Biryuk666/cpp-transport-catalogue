@@ -1,21 +1,31 @@
-//#include "input_reader.h"
 #include <iostream>
-#include "json.h"
 #include "json_reader.h"
-//#include "stat_reader.h"
+#include "map_renderer.h"
+#include "request_handler.h"
 #include <string>
-//#include "tests.h"
+
+#include "tests.h"
 
 using namespace std;
 using namespace transport_catalogue;
 
 int main() {
-    TransportCatalogue catalogue;
+    // тест SVG библиотеки
+    /*TransportCatalogue catalogue;
     json_reader::JsonReader reader;
-    reader.RequestProcess(catalogue, cin, cout);
+    map_renderer::MapRenderer renderer;
+    reader.RequestProcess(catalogue, cin, cerr, renderer);
+    
+    svg::Document doc = renderer.RenderMap(catalogue.GetBusesList());
+    doc.Render(cout);*/
+
+    // тест Json библиотеки
+    /*TransportCatalogue catalogue;
+    json_reader::JsonReader reader;
+    reader.RequestProcess(catalogue, cin, cout);*/
 
 
-    //Tests();
+    Tests();
 
     /*TransportCatalogue catalogue;
 

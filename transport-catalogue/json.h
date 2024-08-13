@@ -113,17 +113,6 @@ inline bool operator!=(const Document& lhs, const Document& rhs) {
 Document Load(std::istream& input);
 
 void Print(const Document& doc, std::ostream& output);
-void PrintNode(const Node& node, std::ostream& out);
-void PrintString(std::string str, std::ostream& out);
-
-// шаблонные методы
-template <typename Type>
-std::ostream& ValuePrinter::operator()(Type value) {
-    PrintContext context{output, indent_step, indent};
-    context.PrintIndent();
-    context.out << value;
-
-    return context.out ;
-}
+void PrintNode(const Node& node, PrintContext& context);
 
 }  // namespace json

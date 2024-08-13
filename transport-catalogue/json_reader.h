@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include "json.h"
+#include "map_renderer.h"
+#include "request_handler.h"
 #include "transport_catalogue.h"
 #include <vector>
 
@@ -10,6 +12,7 @@ namespace transport_catalogue {
 
         enum class RequestType {
             BUS,
+            MAP,
             STOP,
             WTF
         };
@@ -25,12 +28,14 @@ namespace transport_catalogue {
         class JsonReader {
         public:
             
-        void RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& out);
+        void RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& out, map_renderer::MapRenderer& renderer);
 
         private:
             std::vector<StatRequest> stat_requests;
             std::vector<json::Node> buses_request, stops_request;
         };
+
+        void TestInnerFunction();
 
     } // namespace json_reader
 } // namespace transport_catalogue

@@ -73,6 +73,8 @@ namespace transport_catalogue {
                             document["error_message"s] = "not found"s;
                         }
                         break;
+                    } case RequestType::MAP: {
+                        break;
                     } case RequestType::STOP: {
                         if (const auto& stop = catalogue.GetStop(request.name)) {                            
                             auto buses_for_stop = catalogue.GetBusesForStop(stop->name);
@@ -100,22 +102,66 @@ namespace transport_catalogue {
             return json::Document(result);
         }
 
-        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output) {
+        svg::Color GetColorFromRequest(const json::Node& color_node) {
+            svg::Color color;
+            if (color_node.IsString()) {
+                color = color_node.AsString();
+            } else if (color_node.AsArray().size() == 3) {
+                color = svg::Rgb(static_cast<uint8_t>(color_node.AsArray()[0].AsInt()),
+                                 static_cast<uint8_t>(color_node.AsArray()[1].AsInt()),
+                                 static_cast<uint8_t>(color_node.AsArray()[2].AsInt()));
+            } else if (color_node.AsArray().size() == 4) {
+                color = svg::Rgba(static_cast<uint8_t>(color_node.AsArray()[0].AsInt()),
+                                  static_cast<uint8_t>(color_node.AsArray()[1].AsInt()),
+                                  static_cast<uint8_t>(color_node.AsArray()[2].AsInt()),
+                                  color_node.AsArray()[3].AsDouble());
+            }
+            return color;
+        }
+
+        void SetRenderSettings(map_renderer::MapRenderer& renderer, const json::Dict& render_settings) {
+            map_renderer::RenderSettings settings;
+            settings.width = render_settings.at("width").AsDouble();
+            settings.height = render_settings.at("height").AsDouble();
+            settings.padding = render_settings.at("padding").AsDouble();
+            settings.line_width = render_settings.at("line_width").AsDouble();
+            settings.stop_radius = render_settings.at("stop_radius").AsDouble();
+            settings.bus_label_font_size = render_settings.at("bus_label_font_size").AsInt();
+            auto bus_label_offset = render_settings.at("bus_label_offset").AsArray();
+            settings.bus_label_offset.x = bus_label_offset[0].AsDouble();
+            settings.bus_label_offset.y = bus_label_offset[1].AsDouble();
+            settings.stop_label_font_size = render_settings.at("stop_label_font_size").AsInt();
+            auto stop_label_offset = render_settings.at("stop_label_offset").AsArray();
+            settings.stop_label_offset.x = stop_label_offset[0].AsDouble();
+            settings.stop_label_offset.y = stop_label_offset[1].AsDouble();
+            settings.underlayer_color = GetColorFromRequest(render_settings.at("underlayer_color"));
+            settings.underlayer_width = render_settings.at("underlayer_width").AsDouble();               
+            for (const auto& color_nodes : render_settings.at("color_palette").AsArray()) {
+                settings.color_palette.push_back(GetColorFromRequest(color_nodes));
+            }
+            renderer.SetSetting(move(settings));
+        }
+
+        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer) {
             json::Document request = json::Load(input);
             for (const auto& [request_type, request_body] : request.GetRoot().AsMap()) {
-                if (request_type == "base_requests"s) {
+                if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
                     BaseRequestProcess(catalogue, request_body.AsArray());
-                } else if (request_type == "stat_requests"s) {
+                } else if (request_type == "stat_requests"s && !request_body.AsArray().empty()) {
+                    continue;
                     for (const auto& query : request_body.AsArray()) {
                         StatRequest stat_request;
                         stat_request.id = query.AsMap().at("id").AsInt();
                         stat_request.type = GetRequestType(query.AsMap().at("type").AsString());
+                        if (stat_request.type == RequestType::MAP || stat_request.type == RequestType::WTF) continue;
                         stat_request.name = query.AsMap().at("name").AsString();
                         stat_requests.push_back(stat_request);
                     }
                     json::Document document = StatRequestProcess(catalogue, stat_requests);
                     json::Print(document, output);
-                } else {}
+                } else if (request_type == "render_settings"s && !request_body.AsMap().empty()) {
+                    SetRenderSettings(renderer, request_body.AsMap());
+                }
             }
 
         }
@@ -125,6 +171,8 @@ namespace transport_catalogue {
                 return RequestType::BUS;
             } else if (request == "Stop") {
                 return RequestType::STOP;
+            } else if (request == "Map") {
+                return RequestType::MAP;
             } else {
                 return RequestType::WTF;
             }
