@@ -28,7 +28,7 @@ namespace transport_catalogue {
         void Circle::RenderObject(const RenderContext& context) const {
             auto& out = context.out;
             out << "<circle cx=\""sv << center_.x << "\" cy=\""sv << center_.y << "\" "sv;
-            out << "r=\""sv << radius_ << "\" "sv;
+            out << "r=\""sv << radius_ << "\""sv;
             RenderAttrs(out);
             out << "/>"sv;
         }

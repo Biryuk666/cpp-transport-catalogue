@@ -112,12 +112,17 @@ namespace transport_catalogue {
 
             void SetSetting(RenderSettings&& settings);
 
-            svg::Document RenderMap(const std::map<std::string_view, const domain::Bus*>* bus_list);
+            svg::Document RenderMap(const std::map<std::string_view, const domain::Bus*>* bus_list) const;
 
         private:
             RenderSettings settings_;
 
-            svg::Polyline RenderRoutes(const domain::Bus* bus, SphereProjector& projector, size_t color_number);
+            svg::Polyline RenderRoutes(const domain::Bus* bus, SphereProjector& projector, size_t color_number) const;
+            svg::Text RenderRouteName(const domain::Bus* bus, svg::Point stop_coordinates, size_t color_number) const;
+            svg::Text RenderRouteNameBase(const domain::Bus* bus, svg::Point stop_coordinates) const;
+            svg::Circle RenderStopCircle(const domain::Stop* stop, SphereProjector& projector) const;
+            svg::Text RenderStopName(const domain::Stop* stop, SphereProjector& projector) const;
+            svg::Text RenderStopNameBase(const domain::Stop* stop, SphereProjector& projector) const;
         };
 
     } // namespace map_renderer

@@ -43,7 +43,7 @@ namespace transport_catalogue {
                 return;
             }
             auto buses = tansport_catalogue.GetBusesForStop(stop_name);
-            if (buses == nullopt) {
+            if (!buses) {
                 output << "Stop "s << stop_name << ": no buses"s << endl;
                 return;
             }

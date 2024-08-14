@@ -1,5 +1,7 @@
 #include <algorithm>
 #include "json_reader.h"
+#include "request_handler.h"
+#include <sstream>
 #include <set>
 #include <string>
 #include <string_view>
@@ -56,7 +58,7 @@ namespace transport_catalogue {
             }
         }
 
-        json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request) {
+        json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request,  const request_handler::RequestHandler& handler) {
             json::Array result;
             for (const auto& request : stat_request) {
                 json::Dict document;
@@ -74,12 +76,15 @@ namespace transport_catalogue {
                         }
                         break;
                     } case RequestType::MAP: {
+                        ostringstream output;
+                        handler.RenderMap().Render(output);
+                        document["map"s] = output.str();
                         break;
                     } case RequestType::STOP: {
                         if (const auto& stop = catalogue.GetStop(request.name)) {                            
                             auto buses_for_stop = catalogue.GetBusesForStop(stop->name);
                             json::Array buses;
-                            if (buses_for_stop != nullopt) {
+                            if (buses_for_stop) {
                                 set<string> buses_names;
                                 for (const auto& bus : *buses_for_stop) {
                                     buses_names.insert(bus->name);
@@ -93,6 +98,7 @@ namespace transport_catalogue {
                         } else {
                             document["error_message"s] = "not found"s;
                         }
+                        break;
                     } case RequestType::WTF: {
                         break;
                     }
@@ -142,22 +148,22 @@ namespace transport_catalogue {
             renderer.SetSetting(move(settings));
         }
 
-        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer) {
+        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer, request_handler::RequestHandler handler) {
             json::Document request = json::Load(input);
             for (const auto& [request_type, request_body] : request.GetRoot().AsMap()) {
                 if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
                     BaseRequestProcess(catalogue, request_body.AsArray());
                 } else if (request_type == "stat_requests"s && !request_body.AsArray().empty()) {
-                    continue;
                     for (const auto& query : request_body.AsArray()) {
                         StatRequest stat_request;
                         stat_request.id = query.AsMap().at("id").AsInt();
                         stat_request.type = GetRequestType(query.AsMap().at("type").AsString());
-                        if (stat_request.type == RequestType::MAP || stat_request.type == RequestType::WTF) continue;
-                        stat_request.name = query.AsMap().at("name").AsString();
+                        if (stat_request.type == RequestType::BUS || stat_request.type == RequestType::STOP) {
+                            stat_request.name = query.AsMap().at("name").AsString();
+                        }
                         stat_requests.push_back(stat_request);
                     }
-                    json::Document document = StatRequestProcess(catalogue, stat_requests);
+                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler);
                     json::Print(document, output);
                 } else if (request_type == "render_settings"s && !request_body.AsMap().empty()) {
                     SetRenderSettings(renderer, request_body.AsMap());

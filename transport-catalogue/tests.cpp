@@ -122,7 +122,7 @@ void TestRequestProcessDuration() {
         TransportCatalogue catalogue;
     
         LOG_DURATION("Request process");
-        reader.RequestProcess(catalogue, input, output, renderer);
+        //reader.RequestProcess(catalogue, input, output, renderer);
  
     }
 /*
@@ -176,7 +176,7 @@ void TestRenderMapDuration() {
     ostringstream output;
 
     TransportCatalogue catalogue;
-    reader.RequestProcess(catalogue, input, output, renderer);
+    //reader.RequestProcess(catalogue, input, output, renderer);
 
     LOG_DURATION("Render map");
     svg::Document doc = renderer.RenderMap(catalogue.GetBusesList());

@@ -64,11 +64,11 @@ namespace transport_catalogue {
         return stops_pointers_.at(stop_name);
     }
 
-    optional<unordered_set<const domain::Bus*>> TransportCatalogue::GetBusesForStop(const std::string_view& stop_name) const {
+    const unordered_set<const domain::Bus*>* TransportCatalogue::GetBusesForStop(const std::string_view& stop_name) const {
         if (buses_for_stop_.count(stop_name) == 0) {
-            return nullopt;
+            return nullptr;
         }
-        return buses_for_stop_.at(stop_name);
+        return &buses_for_stop_.at(stop_name);
     }
 
     void TransportCatalogue::SetDistance(const domain::Stop* from, const domain::Stop* to, int distance) {

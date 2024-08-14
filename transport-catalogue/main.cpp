@@ -4,29 +4,22 @@
 #include "request_handler.h"
 #include <string>
 
-#include "tests.h"
+//#include "tests.h"
 
 using namespace std;
 using namespace transport_catalogue;
 
 int main() {
-    // тест SVG библиотеки
-    /*TransportCatalogue catalogue;
+    //Tests();
+
+    TransportCatalogue catalogue;
     json_reader::JsonReader reader;
     map_renderer::MapRenderer renderer;
-    reader.RequestProcess(catalogue, cin, cerr, renderer);
+    request_handler::RequestHandler handler (catalogue, renderer);
+    reader.RequestProcess(catalogue, cin, cout, renderer, handler);
+
     
-    svg::Document doc = renderer.RenderMap(catalogue.GetBusesList());
-    doc.Render(cout);*/
-
-    // тест Json библиотеки
-    /*TransportCatalogue catalogue;
-    json_reader::JsonReader reader;
-    reader.RequestProcess(catalogue, cin, cout);*/
-
-
-    Tests();
-
+    // iput_reader & stat_reader
     /*TransportCatalogue catalogue;
 
     int base_request_count;

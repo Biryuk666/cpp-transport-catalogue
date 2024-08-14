@@ -36,7 +36,7 @@ namespace transport_catalogue {
             const domain::Bus* GetBus(const std::string_view& bus_name) const;
             const domain::Stop* GetStop(const std::string_view& stop_name) const;
 
-            std::optional<std::unordered_set<const domain::Bus*>> GetBusesForStop(const std::string_view& stop_name) const;
+            const std::unordered_set<const domain::Bus*>* GetBusesForStop(const std::string_view& stop_name) const;
 
             void SetDistance(const domain::Stop* from, const domain::Stop* to, int distance);
             int GetDistance(const domain::Stop* from, const domain::Stop* to) const;
