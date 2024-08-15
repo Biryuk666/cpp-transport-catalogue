@@ -239,21 +239,12 @@ namespace json {
         
     } // namespace
 
-Node::Node(Array array) : value_(move(array)) {}    
-Node::Node(bool value) : value_(value) {}
-Node::Node(Dict map) : value_(move(map)) {}
-Node::Node(double value) : value_(value) {}
-Node::Node(int value) : value_(value) {}
-Node::Node(nullptr_t) : Node() {}
-Node::Node(string value) : value_(move(value)) {}
-
-
 bool Node::IsArray() const {
-    return std::holds_alternative<Array>(value_);
+    return std::holds_alternative<Array>(*this);
 }
 
 bool Node::IsBool() const {
-    return std::holds_alternative<bool>(value_);
+    return std::holds_alternative<bool>(*this);
 }
 
 bool Node::IsDouble() const {
@@ -261,53 +252,53 @@ bool Node::IsDouble() const {
 }
 
 bool Node::IsInt() const {
-    return std::holds_alternative<int>(value_);
+    return std::holds_alternative<int>(*this);
 }
 
 bool Node::IsMap() const {
-    return std::holds_alternative<Dict>(value_);
+    return std::holds_alternative<Dict>(*this);
 }
 
 bool Node::IsNull() const {
-    return std::holds_alternative<std::nullptr_t>(value_);
+    return std::holds_alternative<std::nullptr_t>(*this);
 }
   
 bool Node::IsPureDouble() const {
-    return std::holds_alternative<double>(value_);
+    return std::holds_alternative<double>(*this);
 }    
  
 bool Node::IsString() const {
-    return std::holds_alternative<std::string>(value_);
+    return std::holds_alternative<std::string>(*this);
 }    
 
 const Array& Node::AsArray() const {
-    if (IsArray()) return get<Array>(value_);
+    if (IsArray()) return get<Array>(*this);
     throw logic_error("Value type is not an array"s);
 }
 
 bool Node::AsBool() const {
-    if (IsBool()) return get<bool>(value_);
+    if (IsBool()) return get<bool>(*this);
     throw logic_error("Value type is not a bool"s);
 }
 
 double Node::AsDouble() const {
-    if (IsPureDouble()) return get<double>(value_);
+    if (IsPureDouble()) return get<double>(*this);
     else if (IsInt()) return AsInt();
     throw logic_error("Value type is not a double"s);
 }
 
 int Node::AsInt() const {
-    if (IsInt()) return get<int>(value_);;
+    if (IsInt()) return get<int>(*this);
     throw logic_error("Value type is not an int"s);
 }
 
 const Dict& Node::AsMap() const {
-    if (IsMap()) return get<Dict>(value_);
+    if (IsMap()) return get<Dict>(*this);
     throw logic_error("Value type is not a dictionary"s);
 }
 
 const string& Node::AsString() const {
-    if (IsString()) return get<string>(value_);
+    if (IsString()) return get<string>(*this);
     throw logic_error("Value type is not a string"s);
 }
 
@@ -323,8 +314,9 @@ Document Load(istream& input) {
     return Document{LoadNode(input)};
 }
 
+
 const Node::Value& Node::GetValue() const {
-    return value_;
+    return *this;
 }
 
 void PrintString(std::string value, std::ostream& out){

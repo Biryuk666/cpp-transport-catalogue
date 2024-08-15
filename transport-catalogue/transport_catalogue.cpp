@@ -10,12 +10,13 @@ using namespace std;
 
 namespace transport_catalogue {
 
-    void TransportCatalogue::AddBus(const string& bus_name, vector<string_view>& stops) {
+    void TransportCatalogue::AddBus(const string& bus_name, vector<string>& stops, bool is_roundtrip) {
         domain::Bus new_bus;
         new_bus.name = bus_name;
         for (const auto& stop : stops) {
             new_bus.stops.push_back(GetStop(stop));
         }
+        new_bus.is_roundtrip = is_roundtrip;
         buses_.push_back(move(new_bus));
         buses_pointers_[buses_.back().name] = &buses_.back();
         for (const auto& stop : stops) {
@@ -23,22 +24,9 @@ namespace transport_catalogue {
         }
     }
 
-    void TransportCatalogue::AddBus(domain::Bus&& bus) {
-        buses_.push_back(move(bus));
-        buses_pointers_[buses_.back().name] = &buses_.back();
-        for (const auto& stop : buses_.back().stops) {
-            AddBusesForStop(stop->name, &buses_.back());
-        }
-    }
-
     void TransportCatalogue::AddStop(const string& stop_name, geo::Coordinates&& coordinates) {
         domain::Stop new_stop{stop_name, move(coordinates)};
         stops_.push_back(move(new_stop));
-        stops_pointers_[stops_.back().name] = &stops_.back();
-    }
-
-    void TransportCatalogue::AddStop(domain::Stop&& stop) {
-        stops_.push_back(move(stop));
         stops_pointers_[stops_.back().name] = &stops_.back();
     }
 

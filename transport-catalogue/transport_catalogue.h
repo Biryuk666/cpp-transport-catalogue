@@ -27,12 +27,9 @@ namespace transport_catalogue {
         public:
             
 
-            void AddBus(const std::string& bus_name, std::vector<std::string_view>& stops);
-            void AddBus(domain::Bus&& bus);
-            void AddStop(const std::string& stop_name, geo::Coordinates&& coordinates);            
-            void AddStop(domain::Stop&& stop);
-            void AddBusesForStop(std::string_view stop_name, const domain::Bus* bus);
-                    
+            void AddBus(const std::string& bus_name, std::vector<std::string>& stops, bool is_roundtrip);
+            void AddStop(const std::string& stop_name, geo::Coordinates&& coordinates);
+                                
             const domain::Bus* GetBus(const std::string_view& bus_name) const;
             const domain::Stop* GetStop(const std::string_view& stop_name) const;
 
@@ -56,6 +53,7 @@ namespace transport_catalogue {
             std::unordered_map<std::string_view, std::unordered_set<const domain::Bus*>> buses_for_stop_;
             std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher> distance_between_stops_;
 
+            void AddBusesForStop(std::string_view stop_name, const domain::Bus* bus);
             int GetRouteLength(const std::vector<const domain::Stop*>& stops, bool is_roundtrip) const;
         };
 

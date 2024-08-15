@@ -21,19 +21,14 @@ public:
     using runtime_error::runtime_error;
 };
 
-class Node {
-public:
-    using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
-    const Value& GetValue() const;
 
-    Node() = default;
-    Node(Array array);
-    Node(bool value);    
-    Node(Dict map);
-    Node(int value);
-    Node(std::string value);
-    Node(std::nullptr_t);
-    Node(double value);
+class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string> {
+public:
+    // Делаем доступными все конструкторы родительского класса variant
+    using variant::variant;
+    using Value = variant;
+
+    const Value& GetValue() const;
 
     bool IsArray() const;
     bool IsBool() const;
@@ -50,9 +45,6 @@ public:
     int AsInt() const;
     const Dict& AsMap() const;
     const std::string& AsString() const;
-
-private:
-    Value value_;
 };
 
 inline bool operator==(const Node& lhs, const Node& rhs) { 

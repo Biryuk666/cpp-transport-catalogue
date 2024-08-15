@@ -5,6 +5,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 
 using namespace std;
@@ -12,19 +13,19 @@ using namespace std;
 namespace transport_catalogue {
     namespace json_reader {
 
-        domain::Stop GetStopFromRequest(const json::Dict& stop_request) {
+        pair<string, geo::Coordinates> GetStopFromRequest(const json::Dict& stop_request) {
             return {stop_request.at("name"s).AsString(), {stop_request.at("latitude"s).AsDouble(), stop_request.at("longitude"s).AsDouble()}};
         }
 
-        domain::Bus GetBusFromRequest(const TransportCatalogue& catalogue, const json::Dict& bus_request) {
+        tuple<string, vector<string>, bool> GetBusFromRequest(const json::Dict& bus_request) {
             string bus_name = bus_request.at("name"s).AsString();
-            vector<const domain::Stop*> stops;
+            vector<string> stops;
             bool is_roundtrip = bus_request.at("is_roundtrip"s).AsBool();
             for (const auto& stop : bus_request.at("stops"s).AsArray()) {
-                stops.push_back(catalogue.GetStop(stop.AsString()));
+                stops.push_back(stop.AsString());
             }
             
-            return {bus_name, stops, is_roundtrip};
+            return tie(bus_name, stops, is_roundtrip);
         }
 
         void SetDistanceToStopsFromRequest (TransportCatalogue& catalogue, const json::Dict& stop_request) {
@@ -38,7 +39,8 @@ namespace transport_catalogue {
             vector<const json::Dict*> buses_buffer, stops_buffer;
             for (const auto& request : base_request) {
                 if (request.AsMap().at("type"s).AsString() == "Stop"s) {
-                    catalogue.AddStop(move(GetStopFromRequest(request.AsMap())));
+                    auto [stop_name, coordinates] = GetStopFromRequest(request.AsMap());
+                    catalogue.AddStop(stop_name, move(coordinates));
                     if (request.AsMap().count("road_distances"s)) {
                         stops_buffer.push_back(&request.AsMap());
                     }
@@ -50,7 +52,11 @@ namespace transport_catalogue {
             }
 
             for (const auto& request : buses_buffer) {
-                catalogue.AddBus(move(GetBusFromRequest(catalogue, *request)));
+                auto bus = GetBusFromRequest(*request);
+                string bus_name = get<string>(bus);
+                auto stops = get<vector<string>>(bus);
+                bool is_roundtrip = get<bool>(bus);
+                catalogue.AddBus(bus_name, stops, is_roundtrip);
             }
 
             for (const auto& request : stops_buffer) {
