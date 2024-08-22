@@ -1,6 +1,5 @@
 #include <algorithm>
 #include "json_reader.h"
-#include "request_handler.h"
 #include <sstream>
 #include <set>
 #include <string>
@@ -30,7 +29,7 @@ namespace transport_catalogue {
 
         void SetDistanceToStopsFromRequest (TransportCatalogue& catalogue, const json::Dict& stop_request) {
             string stop_from = stop_request.at("name"s).AsString();
-            for (const auto& [stop_to, distance] : stop_request.at("road_distances"s).AsMap()) {
+            for (const auto& [stop_to, distance] : stop_request.at("road_distances"s).AsDict()) {
                 catalogue.SetDistance(catalogue.GetStop(stop_from), catalogue.GetStop(stop_to), distance.AsInt());
             }
         }
@@ -38,14 +37,14 @@ namespace transport_catalogue {
         void BaseRequestProcess (TransportCatalogue& catalogue, const json::Array& base_request) {
             vector<const json::Dict*> buses_buffer, stops_buffer;
             for (const auto& request : base_request) {
-                if (request.AsMap().at("type"s).AsString() == "Stop"s) {
-                    auto [stop_name, coordinates] = GetStopFromRequest(request.AsMap());
+                if (request.AsDict().at("type"s).AsString() == "Stop"s) {
+                    auto [stop_name, coordinates] = GetStopFromRequest(request.AsDict());
                     catalogue.AddStop(stop_name, move(coordinates));
-                    if (request.AsMap().count("road_distances"s)) {
-                        stops_buffer.push_back(&request.AsMap());
+                    if (request.AsDict().count("road_distances"s)) {
+                        stops_buffer.push_back(&request.AsDict());
                     }
-                } else if (request.AsMap().at("type"s).AsString() == "Bus"s) {
-                    buses_buffer.push_back(&request.AsMap());
+                } else if (request.AsDict().at("type"s).AsString() == "Bus"s) {
+                    buses_buffer.push_back(&request.AsDict());
                 } else {
                     continue;
                 }
@@ -67,24 +66,24 @@ namespace transport_catalogue {
         json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request,  const request_handler::RequestHandler& handler) {
             json::Array result;
             for (const auto& request : stat_request) {
-                json::Dict document;
-                document["request_id"s] = request.id;
+                json::Builder builder;
+                builder.StartDict().Key("request_id"s).Value(request.id);
                 switch (request.type) {
                     case RequestType::BUS: {
                         if (const auto& bus = catalogue.GetBus(request.name)) {
                             domain::RouteInfo route_info = catalogue.GetRouteInfo(bus);
-                            document["curvature"s] = route_info.route_curvature;
-                            document["route_length"s] = route_info.route_length;
-                            document["stop_count"s] = route_info.total_stops_number;
-                            document["unique_stop_count"s] = route_info.unique_stops_number;
+                            builder.Key("curvature"s).Value(route_info.route_curvature)
+                            .Key("route_length"s).Value(route_info.route_length)
+                            .Key("stop_count"s).Value(route_info.total_stops_number)
+                            .Key("unique_stop_count"s).Value(route_info.unique_stops_number);
                         } else {
-                            document["error_message"s] = "not found"s;
+                            builder.Key("error_message"s).Value("not found"s);
                         }
                         break;
                     } case RequestType::MAP: {
                         ostringstream output;
                         handler.RenderMap().Render(output);
-                        document["map"s] = output.str();
+                        builder.Key("map"s).Value(output.str());
                         break;
                     } case RequestType::STOP: {
                         if (const auto& stop = catalogue.GetStop(request.name)) {                            
@@ -100,16 +99,17 @@ namespace transport_catalogue {
                                     buses.emplace_back(json::Node(bus));
                                 }
                             }
-                            document["buses"s] = buses;
+                            builder.Key("buses"s).Value(buses);
                         } else {
-                            document["error_message"s] = "not found"s;
+                            builder.Key("error_message"s).Value("not found"s);
                         }
                         break;
                     } case RequestType::WTF: {
                         break;
                     }
                 }
-                result.push_back(document);          
+                builder.EndDict();
+                result.push_back(builder.Build());          
             }
             return json::Document(result);
         }
@@ -156,23 +156,23 @@ namespace transport_catalogue {
 
         void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer, request_handler::RequestHandler handler) {
             json::Document request = json::Load(input);
-            for (const auto& [request_type, request_body] : request.GetRoot().AsMap()) {
+            for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
                 if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
                     BaseRequestProcess(catalogue, request_body.AsArray());
                 } else if (request_type == "stat_requests"s && !request_body.AsArray().empty()) {
                     for (const auto& query : request_body.AsArray()) {
                         StatRequest stat_request;
-                        stat_request.id = query.AsMap().at("id").AsInt();
-                        stat_request.type = GetRequestType(query.AsMap().at("type").AsString());
+                        stat_request.id = query.AsDict().at("id").AsInt();
+                        stat_request.type = GetRequestType(query.AsDict().at("type").AsString());
                         if (stat_request.type == RequestType::BUS || stat_request.type == RequestType::STOP) {
-                            stat_request.name = query.AsMap().at("name").AsString();
+                            stat_request.name = query.AsDict().at("name").AsString();
                         }
                         stat_requests.push_back(stat_request);
                     }
                     json::Document document = StatRequestProcess(catalogue, stat_requests, handler);
                     json::Print(document, output);
-                } else if (request_type == "render_settings"s && !request_body.AsMap().empty()) {
-                    SetRenderSettings(renderer, request_body.AsMap());
+                } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
+                    SetRenderSettings(renderer, request_body.AsDict());
                 }
             }
 
