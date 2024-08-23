@@ -33,7 +33,6 @@ namespace transport_catalogue {
 
         private:
             std::vector<StatRequest> stat_requests;
-            std::vector<json::Node> buses_request, stops_request;
         };
 
         void TestInnerFunction();

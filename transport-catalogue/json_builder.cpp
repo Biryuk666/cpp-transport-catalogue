@@ -37,7 +37,7 @@ namespace json {
         }
     }
 
-    KeyContext Builder::Key(string key) {
+    Builder::KeyContext Builder::Key(string key) {
         if (GetCurrentNode()->IsDict()) {
             Dict& current_node = const_cast<Dict&>(GetCurrentNode()->AsDict());
             current_node[key] = key;
@@ -45,7 +45,7 @@ namespace json {
         } else {
             throw std::logic_error("Key() outside a dict"s);
         }
-        return KeyContext(*this);
+        return Builder::KeyContext(*this);
     }
 
     Builder& Builder::Value(Node::Value value) {
@@ -53,9 +53,9 @@ namespace json {
         return *this;
     }
 
-    DictItemContext Builder::StartDict() {
+    Builder::DictItemContext Builder::StartDict() {
         stack_.push_back(InsertNode(Dict{}));
-        return DictItemContext(*this);
+        return Builder::DictItemContext(*this);
     }
 
     Builder& Builder::EndDict() {
@@ -67,7 +67,7 @@ namespace json {
         return *this;
     }
 
-    ArrayItemContext Builder::StartArray() {
+    Builder::ArrayItemContext Builder::StartArray() {
         stack_.push_back(InsertNode(Array{}));
         return ArrayItemContext(*this);
     }
@@ -88,35 +88,35 @@ namespace json {
         return root_;
     }
 
-    KeyContext Context::Key(string key) {
+    Builder::KeyContext Builder::Context::Key(string key) {
         return builder_.Key(key);
     }
 
-    Builder& Context::Value(Node::Value value) {
+    Builder& Builder::Context::Value(Node::Value value) {
         return builder_.Value(value);
     }
 
-    DictItemContext Context::StartDict() {
+    Builder::DictItemContext Builder::Context::StartDict() {
         return builder_.StartDict();
     }
 
-    Builder& Context::EndDict() {
+    Builder& Builder::Context::EndDict() {
         return builder_.EndDict();
     }
 
-    ArrayItemContext Context::StartArray() {
+    Builder::ArrayItemContext Builder::Context::StartArray() {
         return builder_.StartArray();
     }
 
-    Builder& Context::EndArray() {
+    Builder& Builder::Context::EndArray() {
         return builder_.EndArray();
     }
 
-    DictItemContext KeyContext::Value(Node::Value value) {
+    Builder::DictItemContext Builder::KeyContext::Value(Node::Value value) {
         return DictItemContext(Context::Value(value));
     }
 
-    ArrayItemContext ArrayItemContext::Value(Node::Value value) {
+    Builder::ArrayItemContext Builder::ArrayItemContext::Value(Node::Value value) {
         return ArrayItemContext(Context::Value(value));
     }
 
