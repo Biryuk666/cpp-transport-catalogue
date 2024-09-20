@@ -16,7 +16,8 @@ int main() {
     json_reader::JsonReader reader;
     map_renderer::MapRenderer renderer;
     request_handler::RequestHandler handler (catalogue, renderer);
-    reader.RequestProcess(catalogue, cin, cout, renderer, handler);
+    transport_router::TransportRouter router(catalogue);
+    reader.RequestProcess(catalogue, cin, cout, renderer, handler, router);
 
     
     // iput_reader & stat_reader

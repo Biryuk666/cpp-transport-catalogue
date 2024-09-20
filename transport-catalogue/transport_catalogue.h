@@ -24,16 +24,15 @@ namespace transport_catalogue {
         } // namespace detail
 
     class TransportCatalogue {
-        public:
-            
+        public:            
 
             void AddBus(const std::string& bus_name, std::vector<std::string>& stops, bool is_roundtrip);
             void AddStop(const std::string& stop_name, geo::Coordinates&& coordinates);
                                 
-            const domain::Bus* GetBus(const std::string_view& bus_name) const;
-            const domain::Stop* GetStop(const std::string_view& stop_name) const;
+            const domain::Bus* GetBus(std::string_view bus_name) const;
+            const domain::Stop* GetStop(std::string_view stop_name) const;
 
-            const std::unordered_set<const domain::Bus*>* GetBusesForStop(const std::string_view& stop_name) const;
+            const std::unordered_set<const domain::Bus*>* GetBusesForStop(std::string_view stop_name) const;
 
             void SetDistance(const domain::Stop* from, const domain::Stop* to, int distance);
             int GetDistance(const domain::Stop* from, const domain::Stop* to) const;
@@ -41,6 +40,7 @@ namespace transport_catalogue {
             domain::RouteInfo GetRouteInfo(const domain::Bus* bus) const;
 
             const std::map<std::string_view, const domain::Bus*>* GetBusesList() const;
+            const std::unordered_map<std::string_view, const domain::Stop*>* GetStopsList() const;
 
             //тест производительности внутренних методов GetRouteInfo
             //void GetRouteInfoTest(const domain::Bus* bus) const; 

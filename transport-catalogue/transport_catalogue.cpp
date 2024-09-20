@@ -37,7 +37,7 @@ namespace transport_catalogue {
         buses_for_stop_[stop_name].insert(bus);
     }
 
-    const domain::Bus* TransportCatalogue::GetBus(const string_view& bus_name) const {
+    const domain::Bus* TransportCatalogue::GetBus(string_view bus_name) const {
         if (buses_pointers_.count(bus_name) == 0) {
 
             return nullptr;
@@ -45,14 +45,14 @@ namespace transport_catalogue {
         return buses_pointers_.at(bus_name);
     }
 
-    const domain::Stop* TransportCatalogue::GetStop(const string_view& stop_name) const {
+    const domain::Stop* TransportCatalogue::GetStop(string_view stop_name) const {
         if (stops_pointers_.count(stop_name) == 0) {
             return nullptr;
         }
         return stops_pointers_.at(stop_name);
     }
 
-    const unordered_set<const domain::Bus*>* TransportCatalogue::GetBusesForStop(const std::string_view& stop_name) const {
+    const unordered_set<const domain::Bus*>* TransportCatalogue::GetBusesForStop(string_view stop_name) const {
         if (buses_for_stop_.count(stop_name) == 0) {
             return nullptr;
         }
@@ -123,6 +123,10 @@ namespace transport_catalogue {
 
     const map<string_view, const domain::Bus*>* TransportCatalogue::GetBusesList() const {
         return &buses_pointers_;
+    }
+
+    const std::unordered_map<std::string_view, const domain::Stop*>* TransportCatalogue::GetStopsList() const {
+        return &stops_pointers_;
     }
 
     size_t detail::PairHasher::operator()(const std::pair<const domain::Stop*, const domain::Stop*> pair_of_stops) const noexcept {

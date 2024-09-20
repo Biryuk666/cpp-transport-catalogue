@@ -1,7 +1,6 @@
 #include <algorithm>
 #include "json_reader.h"
 #include <sstream>
-#include <set>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -63,7 +62,7 @@ namespace transport_catalogue {
             }
         }
 
-        json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request,  const request_handler::RequestHandler& handler) {
+        json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request,  const request_handler::RequestHandler& handler, const transport_router::TransportRouter& router) {
             json::Array result;
             for (const auto& request : stat_request) {
                 json::Builder builder;
@@ -85,21 +84,50 @@ namespace transport_catalogue {
                         handler.RenderMap().Render(output);
                         builder.Key("map"s).Value(output.str());
                         break;
+                    } case RequestType::ROUTE: {
+                        auto items = router.GetRouteByStops(request.from, request.to);
+                        if (items) {
+                            builder.Key("total_time").Value(items.value().total_time)
+                            .Key("items").StartArray();
+                            for (const auto& item : items.value().items) {
+                                if (item.type == "Wait"s) {
+                                    builder.StartDict()
+                                    .Key("type"s).Value(item.type)
+                                    .Key("stop_name"s).Value(item.name)
+                                    .Key("time"s).Value(item.time)
+                                    .EndDict();
+                                } else {
+                                    builder.StartDict()
+                                    .Key("type"s).Value(item.type)
+                                    .Key("bus"s).Value(item.name)
+                                    .Key("span_count"s).Value(item.span_count)
+                                    .Key("time"s).Value(item.time)
+                                    .EndDict();
+                                }
+                            }
+                            builder.EndArray();
+                        } else {
+                            builder.Key("error_message"s).Value("not found"s);
+                        }
+                        break;
                     } case RequestType::STOP: {
                         if (const auto& stop = catalogue.GetStop(request.name)) {                            
                             auto buses_for_stop = catalogue.GetBusesForStop(stop->name);
-                            json::Array buses;
+                            //json::Array buses;
+                            builder.Key("buses"s).StartArray();
                             if (buses_for_stop) {
-                                set<string> buses_names;
+                                vector<string> buses_names;
                                 for (const auto& bus : *buses_for_stop) {
-                                    buses_names.insert(bus->name);
+                                    buses_names.push_back(bus->name);
                                 }
+                                sort(buses_names.begin(), buses_names.end());
+                                buses_names.erase(unique(buses_names.begin(), buses_names.end()), buses_names.end());
                                 
                                 for (const auto& bus : buses_names) {
-                                    buses.emplace_back(json::Node(bus));
+                                    builder.Value(bus);
                                 }
                             }
-                            builder.Key("buses"s).Value(buses);
+                            builder.EndArray();
                         } else {
                             builder.Key("error_message"s).Value("not found"s);
                         }
@@ -154,7 +182,12 @@ namespace transport_catalogue {
             renderer.SetSetting(move(settings));
         }
 
-        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer, request_handler::RequestHandler handler) {
+        void SetRoutingSettings(transport_router::TransportRouter& router, const json::Dict& route_request) {
+            router.SetWaitTime(route_request.at("bus_wait_time"s).AsInt());
+            router.SetBusVelocity(route_request.at("bus_velocity"s).AsDouble());
+        }
+
+        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler, transport_router::TransportRouter& router) {
             json::Document request = json::Load(input);
             for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
                 if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
@@ -166,13 +199,19 @@ namespace transport_catalogue {
                         stat_request.type = GetRequestType(query.AsDict().at("type").AsString());
                         if (stat_request.type == RequestType::BUS || stat_request.type == RequestType::STOP) {
                             stat_request.name = query.AsDict().at("name").AsString();
+                        } else if (stat_request.type == RequestType::ROUTE) {
+                            stat_request.from = query.AsDict().at("from").AsString();
+                            stat_request.to = query.AsDict().at("to").AsString();
                         }
                         stat_requests.push_back(stat_request);
                     }
-                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler);
+                    router.BuildAllRoutes();
+                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler, router);
                     json::Print(document, output);
                 } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
                     SetRenderSettings(renderer, request_body.AsDict());
+                } else if (request_type == "routing_settings"s && !request_body.AsDict().empty()) {
+                    SetRoutingSettings(router, request_body.AsDict());
                 }
             }
 
@@ -185,6 +224,8 @@ namespace transport_catalogue {
                 return RequestType::STOP;
             } else if (request == "Map") {
                 return RequestType::MAP;
+            } else if (request == "Route") {
+                return RequestType::ROUTE;
             } else {
                 return RequestType::WTF;
             }
