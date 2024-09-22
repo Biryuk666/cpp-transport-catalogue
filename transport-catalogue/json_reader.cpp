@@ -205,7 +205,6 @@ namespace transport_catalogue {
                         }
                         stat_requests.push_back(stat_request);
                     }
-                    router.BuildAllRoutes();
                     json::Document document = StatRequestProcess(catalogue, stat_requests, handler, router);
                     json::Print(document, output);
                 } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {

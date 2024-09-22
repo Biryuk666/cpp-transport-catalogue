@@ -14,26 +14,12 @@ namespace transport_catalogue {
             bus_velocity_ = velocity;
         }
 
-        int TransportRouter::GetWaitTime() const {
-            return bus_wait_time_;
-        }
-
-        double TransportRouter::GetBusVelocity() const {
-            return bus_velocity_;
+        TransportRouter::TransportRouter(const TransportCatalogue& catalogue) : catalogue_(catalogue) {
+            BuildAllRoutes();
         }
 
         StopVertexes TransportRouter::GetStopVertexes(const domain::Stop* stop) const {
             return stop_to_stop_vertexes_.at(stop);
-        }
-
-        void TransportRouter::BuildAllRoutes() {
-            size_t stops_number = catalogue_.GetStopsList()->size();
-            graph_ = std::make_unique<graph::DirectedWeightedGraph<double>>(stops_number * 2);
-            AddStopsToGraph();
-            for(const auto [name, bus] : *catalogue_.GetBusesList()) {
-                AddRouteToGraph(bus);
-            }
-            router_ = std::make_unique<graph::Router<double>>(*graph_);
         }
 
         optional<TransportRouter::RouteItems> TransportRouter::GetRouteByStops(string_view stop_from_name, string_view stop_to_name) const {
@@ -67,7 +53,6 @@ namespace transport_catalogue {
             }
         }
 
-
         void TransportRouter::AddBusEdge(const domain::Stop* from, const domain::Stop* to, string_view bus_name, int span, double distance) {
             Item item;
             item.type = "Bus"s;
@@ -93,6 +78,16 @@ namespace transport_catalogue {
                     }
                 }
             }
+        }
+
+        void TransportRouter::BuildAllRoutes() {
+            size_t stops_number = catalogue_.GetStopsList()->size();
+            graph_ = std::make_unique<graph::DirectedWeightedGraph<double>>(stops_number * 2);
+            AddStopsToGraph();
+            for(const auto [name, bus] : *catalogue_.GetBusesList()) {
+                AddRouteToGraph(bus);
+            }
+            router_ = std::make_unique<graph::Router<double>>(*graph_);
         }
 
     } // transport_router
