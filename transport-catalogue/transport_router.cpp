@@ -6,15 +6,7 @@ using namespace std;
 namespace transport_catalogue {
     namespace transport_router {
         
-        void TransportRouter::SetWaitTime(int time) {
-            bus_wait_time_ = time;
-        }
-
-        void TransportRouter::SetBusVelocity(double velocity) {
-            bus_velocity_ = velocity;
-        }
-
-        TransportRouter::TransportRouter(const TransportCatalogue& catalogue) : catalogue_(catalogue) {
+        TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const TransportRouter::RouteSettings& settings) : catalogue_(catalogue),  router_settings_(settings){
             BuildAllRoutes();
         }
 
@@ -42,11 +34,11 @@ namespace transport_catalogue {
             graph::VertexId vertex_id = 0;
             for (const auto& [name, stop] : *catalogue_.GetStopsList()) {
                 stop_to_stop_vertexes_[stop] = {vertex_id, vertex_id + 1};
-                auto edge_id = graph_->AddEdge({vertex_id, vertex_id + 1, static_cast<double>(bus_wait_time_)});
+                auto edge_id = graph_->AddEdge({vertex_id, vertex_id + 1, static_cast<double>(router_settings_.bus_wait_time)});
                 Item item;
                 item.type = "Wait"s;
                 item.name = name;
-                item.time = static_cast<double>(bus_wait_time_);
+                item.time = static_cast<double>(router_settings_.bus_wait_time);
                 item.span_count = 1;
                 edge_to_item_[edge_id] = move(item);
                 vertex_id += 2;
@@ -57,7 +49,7 @@ namespace transport_catalogue {
             Item item;
             item.type = "Bus"s;
             item.name = bus_name;
-            item.time = distance /(bus_velocity_ *  1000 / 60);
+            item.time = distance /(router_settings_.bus_velocity *  1000 / 60);
             item.span_count = span;
             auto vertexes_from = stop_to_stop_vertexes_.at(from);
             auto vertexes_to = stop_to_stop_vertexes_.at(to);

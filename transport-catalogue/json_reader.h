@@ -33,7 +33,7 @@ namespace transport_catalogue {
         class JsonReader {
         public:
             
-        void RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& out, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler, transport_router::TransportRouter& router);
+        void RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& out, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler);
 
         private:
             std::vector<StatRequest> stat_requests;

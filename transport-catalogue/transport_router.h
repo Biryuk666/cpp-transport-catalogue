@@ -10,8 +10,6 @@
 namespace transport_catalogue {
     namespace transport_router {
 
-        using Weight = double;
-
         struct StopVertexes {
             graph::VertexId wait;
             graph::VertexId bus;
@@ -31,15 +29,17 @@ namespace transport_catalogue {
                     std::vector<Item> items;
                 };
 
-                TransportRouter(const TransportCatalogue& catalogue);
-                void SetWaitTime(int time);
-                void SetBusVelocity(double velocity);
+                struct RouteSettings {
+                    int bus_wait_time = 0;
+                    double bus_velocity = 0;
+                };
+
+                TransportRouter(const TransportCatalogue& catalogue, const RouteSettings& settings);
                 std::optional<RouteItems> GetRouteByStops(std::string_view stop_from_name, std::string_view stop_to_name) const;
 
             private:
-                int bus_wait_time_ = 0;
-                double bus_velocity_ = 0;
                 const TransportCatalogue& catalogue_;
+                RouteSettings router_settings_;
                 std::unique_ptr<graph::DirectedWeightedGraph<double>> graph_;
                 std::unique_ptr<graph::Router<double>> router_;
                 std::map<const domain::Stop*, StopVertexes> stop_to_stop_vertexes_;

@@ -62,8 +62,9 @@ namespace transport_catalogue {
             }
         }
 
-        json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request,  const request_handler::RequestHandler& handler, const transport_router::TransportRouter& router) {
+        json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request,  const request_handler::RequestHandler& handler,  const transport_router::TransportRouter::RouteSettings& settings) {
             json::Array result;
+            transport_router::TransportRouter router(catalogue, settings);
             for (const auto& request : stat_request) {
                 json::Builder builder;
                 builder.StartDict().Key("request_id"s).Value(request.id);
@@ -182,13 +183,14 @@ namespace transport_catalogue {
             renderer.SetSetting(move(settings));
         }
 
-        void SetRoutingSettings(transport_router::TransportRouter& router, const json::Dict& route_request) {
-            router.SetWaitTime(route_request.at("bus_wait_time"s).AsInt());
-            router.SetBusVelocity(route_request.at("bus_velocity"s).AsDouble());
+        void SetRouterSettings(transport_router::TransportRouter::RouteSettings& settings, const json::Dict& route_request) {
+            settings.bus_wait_time = route_request.at("bus_wait_time"s).AsInt();
+            settings.bus_velocity = route_request.at("bus_velocity"s).AsDouble();
         }
 
-        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler, transport_router::TransportRouter& router) {
+        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler) {
             json::Document request = json::Load(input);
+            transport_router::TransportRouter::RouteSettings settings;
             for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
                 if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
                     BaseRequestProcess(catalogue, request_body.AsArray());
@@ -205,12 +207,12 @@ namespace transport_catalogue {
                         }
                         stat_requests.push_back(stat_request);
                     }
-                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler, router);
+                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler, settings);
                     json::Print(document, output);
                 } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
                     SetRenderSettings(renderer, request_body.AsDict());
                 } else if (request_type == "routing_settings"s && !request_body.AsDict().empty()) {
-                    SetRoutingSettings(router, request_body.AsDict());
+                    SetRouterSettings(settings, request_body.AsDict());
                 }
             }
 
