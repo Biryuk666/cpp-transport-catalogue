@@ -1,20 +1,53 @@
+#include <fstream>
 #include <iostream>
+#include <fstream>
+#include <stdexcept>
+#include <string_view>
+
 #include "json_reader.h"
-#include "map_renderer.h"
-#include "request_handler.h"
-#include <string>
+#include "serialization.h"
+#include "transport_catalogue.h"
 
-//#include "tests.h"
-
-using namespace std;
+using namespace std::literals;
 using namespace transport_catalogue;
 
-int main() {
-    //Tests();
+void PrintUsage(std::ostream& stream = std::cerr) {
+    stream << "Usage: transport_catalogue [make_base|process_requests]\n"sv;
+}
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        PrintUsage();
+        return 1;
+    }
 
     TransportCatalogue catalogue;
-    json_reader::JsonReader reader;
     map_renderer::MapRenderer renderer;
-    request_handler::RequestHandler handler (catalogue, renderer);
-    reader.RequestProcess(catalogue, cin, cout, renderer, handler);
+    request_handler::RequestHandler handler(catalogue, renderer);
+    transport_router::TransportRouter::RouteSettings route_settings;
+    json_reader::JsonReader reader;
+
+    const std::string_view mode(argv[1]);
+
+    if (mode == "make_base"sv) {        
+        
+
+        try {
+            reader.MakeBase(catalogue, std::cin, renderer, route_settings);
+        } catch (const std::exception& e) {
+            std::cerr << e.what() << std::endl;
+            return 2;
+        }
+
+    } else if (mode == "process_requests"sv) {
+        try {            
+            reader.ProcessRequest(std::cin, std::cout, handler, route_settings);
+        } catch (const std::exception& e) {
+            std::cerr << e.what() << std::endl;
+            return 3;
+        }
+    } else {
+        PrintUsage();
+        return 1;
+    }
 }

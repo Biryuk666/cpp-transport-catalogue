@@ -1,5 +1,8 @@
-#include <algorithm>
 #include "json_reader.h"
+#include "serialization.h"
+
+#include <algorithm>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -188,9 +191,61 @@ namespace transport_catalogue {
             settings.bus_velocity = route_request.at("bus_velocity"s).AsDouble();
         }
 
-        void JsonReader::RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& output, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler) {
+        void JsonReader::MakeBase(TransportCatalogue &catalogue, istream &input, map_renderer::MapRenderer &renderer, transport_router::TransportRouter::RouteSettings& route_settings) {
             json::Document request = json::Load(input);
-            transport_router::TransportRouter::RouteSettings settings;
+            
+            serialization::SerializationSettings serialization_settings;
+
+            for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
+                if (request_type == "serialization_settings" && !request_body.AsDict().empty()) {
+                    serialization_settings.file_name = request_body.AsDict().at("file").AsString();
+                } else if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
+                    BaseRequestProcess(catalogue, request_body.AsArray());
+                } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
+                    SetRenderSettings(renderer, request_body.AsDict());
+                } else if (request_type == "routing_settings"s && !request_body.AsDict().empty()) {
+                    SetRouterSettings(route_settings, request_body.AsDict());
+                }
+            }
+
+            serialization::SerializeData(catalogue, serialization_settings);
+        }
+
+        void JsonReader::ProcessRequest(istream& input, ostream& output, const request_handler::RequestHandler& handler, const transport_router::TransportRouter::RouteSettings& route_settings) {
+            json::Document request = json::Load(input);
+            serialization::SerializationSettings serialization_settings;
+            TransportCatalogue catalogue;
+
+            for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
+                if (request_type == "serialization_settings" && !request_body.AsDict().empty()) {
+                    serialization_settings.file_name = request_body.AsDict().at("file").AsString();
+                    ifstream binary_input(serialization_settings.file_name, ios::binary);
+                    if (!binary_input) throw std::ios_base::failure("Failed to open a file " + serialization_settings.file_name);
+                    catalogue = serialization::DeserializeFile(binary_input);
+                } else if (request_type == "stat_requests"s && !request_body.AsArray().empty()) {
+                    for (const auto& query : request_body.AsArray()) {
+                        StatRequest stat_request;
+                        stat_request.id = query.AsDict().at("id").AsInt();
+                        stat_request.type = GetRequestType(query.AsDict().at("type").AsString());
+                        if (stat_request.type == RequestType::BUS || stat_request.type == RequestType::STOP) {
+                            stat_request.name = query.AsDict().at("name").AsString();
+                        } else if (stat_request.type == RequestType::ROUTE) {
+                            stat_request.from = query.AsDict().at("from").AsString();
+                            stat_request.to = query.AsDict().at("to").AsString();
+                        }
+                        stat_requests.push_back(stat_request);
+                    }
+                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler, route_settings);
+                    json::Print(document, output);
+                } 
+            }
+        }
+
+        void JsonReader::RuntimeProcessRequest(TransportCatalogue &catalogue, std::istream &input, std::ostream &output, map_renderer::MapRenderer &renderer, const request_handler::RequestHandler &handler)
+        {
+            json::Document request = json::Load(input);
+            transport_router::TransportRouter::RouteSettings route_settings;
+
             for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
                 if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
                     BaseRequestProcess(catalogue, request_body.AsArray());
@@ -207,15 +262,14 @@ namespace transport_catalogue {
                         }
                         stat_requests.push_back(stat_request);
                     }
-                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler, settings);
+                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler, route_settings);
                     json::Print(document, output);
                 } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
                     SetRenderSettings(renderer, request_body.AsDict());
                 } else if (request_type == "routing_settings"s && !request_body.AsDict().empty()) {
-                    SetRouterSettings(settings, request_body.AsDict());
+                    SetRouterSettings(route_settings, request_body.AsDict());
                 }
             }
-
         }
 
         RequestType GetRequestType(string_view request) {

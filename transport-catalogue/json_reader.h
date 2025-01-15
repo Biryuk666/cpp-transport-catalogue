@@ -32,14 +32,13 @@ namespace transport_catalogue {
 
         class JsonReader {
         public:
-            
-        void RequestProcess(TransportCatalogue& catalogue, std::istream& input, std::ostream& out, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler);
+            void MakeBase(TransportCatalogue& catalogue, std::istream& input, map_renderer::MapRenderer& renderer, transport_router::TransportRouter::RouteSettings& route_settings);
+            void ProcessRequest(std::istream& input, std::ostream& output, const request_handler::RequestHandler& handler, const transport_router::TransportRouter::RouteSettings& route_settings);
+            void RuntimeProcessRequest(TransportCatalogue& catalogue, std::istream& input, std::ostream& out, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler);
 
         private:
             std::vector<StatRequest> stat_requests;
         };
-
-        void TestInnerFunction();
 
     } // namespace json_reader
 } // namespace transport_catalogue

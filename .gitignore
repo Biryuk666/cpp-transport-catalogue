@@ -1,6 +1,11 @@
-# vs code files
+# vs code and visual studio files
+**/.vs
 **/.vscode
 **/build
+
+#protobuf compiled files
+transport_catalogue.pb.h
+transport_catalogue.pb.cc
 
 # Prerequisites
 *.d

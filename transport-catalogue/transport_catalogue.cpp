@@ -31,39 +31,38 @@ namespace transport_catalogue {
     }
 
     void TransportCatalogue::AddBusesForStop(std::string_view stop_name, const domain::Bus* bus) {
-        if (buses_for_stop_.count(stop_name) != 0 && buses_for_stop_.at(stop_name).count(bus) != 0) {
-            return;
-        }
         buses_for_stop_[stop_name].insert(bus);
     }
 
     const domain::Bus* TransportCatalogue::GetBus(string_view bus_name) const {
-        if (buses_pointers_.count(bus_name) == 0) {
-
+        auto it = buses_pointers_.find(bus_name);
+        if (it == buses_pointers_.end()) {
             return nullptr;
         }
-        return buses_pointers_.at(bus_name);
+        return it->second;
     }
 
     const domain::Stop* TransportCatalogue::GetStop(string_view stop_name) const {
-        if (stops_pointers_.count(stop_name) == 0) {
+        auto it = stops_pointers_.find(stop_name);
+        if (it == stops_pointers_.end()) {
             return nullptr;
         }
-        return stops_pointers_.at(stop_name);
+        return it->second;
     }
 
     const unordered_set<const domain::Bus*>* TransportCatalogue::GetBusesForStop(string_view stop_name) const {
-        if (buses_for_stop_.count(stop_name) == 0) {
+        auto it = buses_for_stop_.find(stop_name);
+        if (it == buses_for_stop_.end()) {
             return nullptr;
         }
-        return &buses_for_stop_.at(stop_name);
+        return &it->second;
     }
 
     void TransportCatalogue::SetDistance(const domain::Stop* from, const domain::Stop* to, int distance) {
         distance_between_stops_[{from, to}] = distance;
     }
 
-    int GetUniqueStopsNumber(const domain::Bus& bus) {
+    int TransportCatalogue::GetUniqueStopsNumber(const domain::Bus& bus) const {
         unordered_set<string_view> unique_stops;
         for (const auto& stop : bus.stops) {
             unique_stops.insert(stop->name);
@@ -71,14 +70,14 @@ namespace transport_catalogue {
         return static_cast<int>(unique_stops.size());
     }
 
-    int GetTotalStopsNumber(const domain::Bus& bus) {
+    int TransportCatalogue::GetTotalStopsNumber(const domain::Bus& bus) const {
         if (bus.is_roundtrip) {
             return static_cast<int>(bus.stops.size());
         }
         return static_cast<int>(bus.stops.size()) * 2 - 1;
     }
 
-    double GetRouteLengthGeo(std::vector<const domain::Stop*> stops) {
+    double TransportCatalogue::GetRouteLengthGeo(std::vector<const domain::Stop*> stops) const {
         double result = 0;
         for (size_t i = 0; i < stops.size(); ++i) {
             if (i == stops.size() - 1) {
@@ -129,40 +128,20 @@ namespace transport_catalogue {
         return &stops_pointers_;
     }
 
-    size_t detail::PairHasher::operator()(const std::pair<const domain::Stop*, const domain::Stop*> pair_of_stops) const noexcept {
-        return hasher_(pair_of_stops.first) * 17 + hasher_(pair_of_stops.second);
+    const deque<domain::Bus>* TransportCatalogue::GetAllBuses() const {
+        return &buses_;
     }
 
-    /*void TransportCatalogue::GetRouteInfoTest(const domain::Bus* bus) const {
-        {
-            LOG_DURATION("Get Total Stops Number");
-            for (int i = 1; i < 101; ++i) {
-                GetTotalStopsNumber(*bus);
-            }
-        }
+    const deque<domain::Stop>* TransportCatalogue::GetAllStops() const {
+        return &stops_;
+    }
 
-        {
-            LOG_DURATION("Get Unique Stops Number");
-            for (int i = 1; i < 101; ++i) {
-                GetUniqueStopsNumber(*bus);
-            }
-        }
+    const unordered_map<pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher>* TransportCatalogue::GetDistanceBetweenStopsList() const {
+        return &distance_between_stops_;
+    }
 
-        {
-            LOG_DURATION("Get Route Length");
-            for (int i = 1; i < 101; ++i) {
-                GetRouteLength(bus->stops, bus->is_roundtrip);
-            }
-        }
-
-        {
-            LOG_DURATION("Get Route Length Geo");
-            for (int i = 1; i < 101; ++i) {
-                GetRouteLengthGeo(bus->stops);
-            }
-        }
-    }*/
-    
-    
+    size_t detail::PairHasher::operator()(const std::pair<const domain::Stop*, const domain::Stop*> pair_of_stops) const noexcept {
+        return hasher_(pair_of_stops.first) * 17 + hasher_(pair_of_stops.second) * 17 * 17;
+    }
 
 } // end of namespace transport_catalogue

@@ -42,8 +42,9 @@ namespace transport_catalogue {
             const std::map<std::string_view, const domain::Bus*>* GetBusesList() const;
             const std::unordered_map<std::string_view, const domain::Stop*>* GetStopsList() const;
 
-            //тест производительности внутренних методов GetRouteInfo
-            //void GetRouteInfoTest(const domain::Bus* bus) const; 
+            const std::deque<domain::Bus>* GetAllBuses() const;
+            const std::deque<domain::Stop>* GetAllStops() const;
+            const std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher>* GetDistanceBetweenStopsList() const;
 
         private:
             std::deque<domain::Bus> buses_;
@@ -54,6 +55,9 @@ namespace transport_catalogue {
             std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher> distance_between_stops_;
 
             void AddBusesForStop(std::string_view stop_name, const domain::Bus* bus);
+            int GetUniqueStopsNumber(const domain::Bus& bus) const;
+            int GetTotalStopsNumber(const domain::Bus& bus) const;
+            double GetRouteLengthGeo(std::vector<const domain::Stop*> stops) const;
             int GetRouteLength(const std::vector<const domain::Stop*>& stops, bool is_roundtrip) const;
         };
 
