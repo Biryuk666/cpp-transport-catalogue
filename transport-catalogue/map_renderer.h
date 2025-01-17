@@ -110,7 +110,8 @@ namespace transport_catalogue {
         public:
             MapRenderer() = default;
 
-            void SetSetting(RenderSettings&& settings);
+            void SetSettings(RenderSettings&& settings);
+            const RenderSettings GetSettings() const;
 
             svg::Document RenderMap(const std::map<std::string_view, const domain::Bus*>* bus_list) const;
 

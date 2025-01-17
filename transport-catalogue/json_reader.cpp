@@ -165,25 +165,28 @@ namespace transport_catalogue {
 
         void SetRenderSettings(map_renderer::MapRenderer& renderer, const json::Dict& render_settings) {
             map_renderer::RenderSettings settings;
-            settings.width = render_settings.at("width").AsDouble();
-            settings.height = render_settings.at("height").AsDouble();
-            settings.padding = render_settings.at("padding").AsDouble();
-            settings.line_width = render_settings.at("line_width").AsDouble();
-            settings.stop_radius = render_settings.at("stop_radius").AsDouble();
-            settings.bus_label_font_size = render_settings.at("bus_label_font_size").AsInt();
-            auto bus_label_offset = render_settings.at("bus_label_offset").AsArray();
-            settings.bus_label_offset.x = bus_label_offset[0].AsDouble();
-            settings.bus_label_offset.y = bus_label_offset[1].AsDouble();
-            settings.stop_label_font_size = render_settings.at("stop_label_font_size").AsInt();
-            auto stop_label_offset = render_settings.at("stop_label_offset").AsArray();
-            settings.stop_label_offset.x = stop_label_offset[0].AsDouble();
-            settings.stop_label_offset.y = stop_label_offset[1].AsDouble();
-            settings.underlayer_color = GetColorFromRequest(render_settings.at("underlayer_color"));
-            settings.underlayer_width = render_settings.at("underlayer_width").AsDouble();               
-            for (const auto& color_nodes : render_settings.at("color_palette").AsArray()) {
-                settings.color_palette.push_back(GetColorFromRequest(color_nodes));
+            // filling settings
+            {
+                settings.width = render_settings.at("width").AsDouble();
+                settings.height = render_settings.at("height").AsDouble();
+                settings.padding = render_settings.at("padding").AsDouble();
+                settings.line_width = render_settings.at("line_width").AsDouble();
+                settings.stop_radius = render_settings.at("stop_radius").AsDouble();
+                settings.bus_label_font_size = render_settings.at("bus_label_font_size").AsInt();
+                auto bus_label_offset = render_settings.at("bus_label_offset").AsArray();
+                settings.bus_label_offset.x = bus_label_offset[0].AsDouble();
+                settings.bus_label_offset.y = bus_label_offset[1].AsDouble();
+                settings.stop_label_font_size = render_settings.at("stop_label_font_size").AsInt();
+                auto stop_label_offset = render_settings.at("stop_label_offset").AsArray();
+                settings.stop_label_offset.x = stop_label_offset[0].AsDouble();
+                settings.stop_label_offset.y = stop_label_offset[1].AsDouble();
+                settings.underlayer_color = GetColorFromRequest(render_settings.at("underlayer_color"));
+                settings.underlayer_width = render_settings.at("underlayer_width").AsDouble();               
+                for (const auto& color_nodes : render_settings.at("color_palette").AsArray()) {
+                    settings.color_palette.push_back(GetColorFromRequest(color_nodes));
+                }
             }
-            renderer.SetSetting(move(settings));
+            renderer.SetSettings(move(settings));
         }
 
         void SetRouterSettings(transport_router::TransportRouter::RouteSettings& settings, const json::Dict& route_request) {
@@ -191,14 +194,15 @@ namespace transport_catalogue {
             settings.bus_velocity = route_request.at("bus_velocity"s).AsDouble();
         }
 
-        void JsonReader::MakeBase(TransportCatalogue &catalogue, istream &input, map_renderer::MapRenderer &renderer, transport_router::TransportRouter::RouteSettings& route_settings) {
+        void JsonReader::MakeBase(istream& input, TransportCatalogue& catalogue, map_renderer::MapRenderer &renderer, transport_router::TransportRouter::RouteSettings& route_settings) {
             json::Document request = json::Load(input);
             
-            serialization::SerializationSettings serialization_settings;
+            serialization::Serializator serializator;
 
             for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
                 if (request_type == "serialization_settings" && !request_body.AsDict().empty()) {
-                    serialization_settings.file_name = request_body.AsDict().at("file").AsString();
+                    string file_name = request_body.AsDict().at("file").AsString();
+                    serializator.SetSettings(move(file_name));
                 } else if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
                     BaseRequestProcess(catalogue, request_body.AsArray());
                 } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
@@ -206,36 +210,45 @@ namespace transport_catalogue {
                 } else if (request_type == "routing_settings"s && !request_body.AsDict().empty()) {
                     SetRouterSettings(route_settings, request_body.AsDict());
                 }
-            }
-
-            serialization::SerializeData(catalogue, serialization_settings);
+            }            
+            
+            serializator.SerializeData(catalogue, renderer);
         }
 
-        void JsonReader::ProcessRequest(istream& input, ostream& output, const request_handler::RequestHandler& handler, const transport_router::TransportRouter::RouteSettings& route_settings) {
+        void JsonReader::FillStatRequest(const json::Node& query) {
+            StatRequest stat_request;
+            // filling stat_request
+            {
+                stat_request.id = query.AsDict().at("id").AsInt();
+                stat_request.type = GetRequestType(query.AsDict().at("type").AsString());
+                if (stat_request.type == RequestType::BUS || stat_request.type == RequestType::STOP) {
+                    stat_request.name = query.AsDict().at("name").AsString();
+                } else if (stat_request.type == RequestType::ROUTE) {
+                    stat_request.from = query.AsDict().at("from").AsString();
+                    stat_request.to = query.AsDict().at("to").AsString();
+                }
+            }
+            
+            stat_requests_.push_back(stat_request);
+        }
+
+        void JsonReader::ProcessRequest(istream& input, ostream& output, TransportCatalogue& catalogue, map_renderer::MapRenderer& renderer, const transport_router::TransportRouter::RouteSettings& route_settings) {
             json::Document request = json::Load(input);
             serialization::SerializationSettings serialization_settings;
-            TransportCatalogue catalogue;
+            map_renderer::RenderSettings render_settings;
 
             for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
                 if (request_type == "serialization_settings" && !request_body.AsDict().empty()) {
-                    serialization_settings.file_name = request_body.AsDict().at("file").AsString();
-                    ifstream binary_input(serialization_settings.file_name, ios::binary);
-                    if (!binary_input) throw std::ios_base::failure("Failed to open a file " + serialization_settings.file_name);
-                    catalogue = serialization::DeserializeFile(binary_input);
+                    string file_name = request_body.AsDict().at("file").AsString();
+                    serialization::Serializator serializator;
+                    serializator.SetSettings(move(file_name));                    
+                    serializator.DeserializeFile(catalogue, renderer);
                 } else if (request_type == "stat_requests"s && !request_body.AsArray().empty()) {
+                    request_handler::RequestHandler handler(catalogue, renderer);
                     for (const auto& query : request_body.AsArray()) {
-                        StatRequest stat_request;
-                        stat_request.id = query.AsDict().at("id").AsInt();
-                        stat_request.type = GetRequestType(query.AsDict().at("type").AsString());
-                        if (stat_request.type == RequestType::BUS || stat_request.type == RequestType::STOP) {
-                            stat_request.name = query.AsDict().at("name").AsString();
-                        } else if (stat_request.type == RequestType::ROUTE) {
-                            stat_request.from = query.AsDict().at("from").AsString();
-                            stat_request.to = query.AsDict().at("to").AsString();
-                        }
-                        stat_requests.push_back(stat_request);
+                        FillStatRequest(query);
                     }
-                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler, route_settings);
+                    json::Document document = StatRequestProcess(catalogue, stat_requests_, handler, route_settings);
                     json::Print(document, output);
                 } 
             }
@@ -251,18 +264,9 @@ namespace transport_catalogue {
                     BaseRequestProcess(catalogue, request_body.AsArray());
                 } else if (request_type == "stat_requests"s && !request_body.AsArray().empty()) {
                     for (const auto& query : request_body.AsArray()) {
-                        StatRequest stat_request;
-                        stat_request.id = query.AsDict().at("id").AsInt();
-                        stat_request.type = GetRequestType(query.AsDict().at("type").AsString());
-                        if (stat_request.type == RequestType::BUS || stat_request.type == RequestType::STOP) {
-                            stat_request.name = query.AsDict().at("name").AsString();
-                        } else if (stat_request.type == RequestType::ROUTE) {
-                            stat_request.from = query.AsDict().at("from").AsString();
-                            stat_request.to = query.AsDict().at("to").AsString();
-                        }
-                        stat_requests.push_back(stat_request);
+                        FillStatRequest(query);
                     }
-                    json::Document document = StatRequestProcess(catalogue, stat_requests, handler, route_settings);
+                    json::Document document = StatRequestProcess(catalogue, stat_requests_, handler, route_settings);
                     json::Print(document, output);
                 } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
                     SetRenderSettings(renderer, request_body.AsDict());

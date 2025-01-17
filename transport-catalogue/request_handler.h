@@ -12,12 +12,6 @@ namespace transport_catalogue {
         class RequestHandler {
         public:
             RequestHandler(const TransportCatalogue& catalogue, const map_renderer::MapRenderer& renderer);
-
-            /*// Возвращает информацию о маршруте (запрос Bus)
-            std::optional<domain::RouteInfo> GetBusStat(const std::string_view& bus_name) const;
-
-            // Возвращает маршруты, проходящие через
-            const std::unordered_set<const domain::Bus*>* GetBusesByStop(const std::string_view& stop_name) const;*/
             
             svg::Document RenderMap() const;
 

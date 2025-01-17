@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "map_renderer.proto";
+
 package transport_catalogue_proto;
 
 message Stop {
@@ -21,9 +23,13 @@ message Distance {
 	uint32 distance = 3;
 }
 
-message Catalogue {
+message CatalogueData {
 	repeated Stop stops = 1;
 	repeated Bus buses = 2;
 	repeated Distance distance_between_stops = 3;
 }
 
+message ProcessingData {
+	CatalogueData catalogue = 1;
+	RenderSettings render_settings = 2;
+}

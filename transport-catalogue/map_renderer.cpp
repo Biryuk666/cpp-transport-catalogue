@@ -10,9 +10,13 @@ namespace transport_catalogue {
             return std::abs(value) < EPSILON;
         }
 
-        void MapRenderer::SetSetting(RenderSettings&& settings) {
+        void MapRenderer::SetSettings(RenderSettings&& settings) {
                 settings_ = std::move(settings);
-            }
+        }
+
+        const RenderSettings MapRenderer::GetSettings() const{
+            return settings_;
+        }
 
         svg::Polyline MapRenderer::RenderRoutes(const domain::Bus* bus, SphereProjector& projector, size_t color_number) const {
             svg::Polyline route;
