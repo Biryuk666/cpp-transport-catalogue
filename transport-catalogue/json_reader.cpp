@@ -65,9 +65,8 @@ namespace transport_catalogue {
             }
         }
 
-        json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request,  const request_handler::RequestHandler& handler,  const transport_router::TransportRouter::RouteSettings& settings) {
+        json::Document StatRequestProcess (TransportCatalogue& catalogue, const vector<StatRequest>& stat_request,  const request_handler::RequestHandler& handler,  const transport_router::TransportRouter& router) {
             json::Array result;
-            transport_router::TransportRouter router(catalogue, settings);
             for (const auto& request : stat_request) {
                 json::Builder builder;
                 builder.StartDict().Key("request_id"s).Value(request.id);
@@ -189,12 +188,12 @@ namespace transport_catalogue {
             renderer.SetSettings(move(settings));
         }
 
-        void SetRouterSettings(transport_router::TransportRouter::RouteSettings& settings, const json::Dict& route_request) {
+        void SetRouterSettings(transport_router::RouterSettings& settings, const json::Dict& route_request) {
             settings.bus_wait_time = route_request.at("bus_wait_time"s).AsInt();
             settings.bus_velocity = route_request.at("bus_velocity"s).AsDouble();
         }
 
-        void JsonReader::MakeBase(istream& input, TransportCatalogue& catalogue, map_renderer::MapRenderer &renderer, transport_router::TransportRouter::RouteSettings& route_settings) {
+        void JsonReader::MakeBase(istream& input, TransportCatalogue& catalogue, map_renderer::MapRenderer &renderer, transport_router::RouterSettings& router_settings) {
             json::Document request = json::Load(input);
             
             serialization::Serializator serializator;
@@ -208,11 +207,13 @@ namespace transport_catalogue {
                 } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
                     SetRenderSettings(renderer, request_body.AsDict());
                 } else if (request_type == "routing_settings"s && !request_body.AsDict().empty()) {
-                    SetRouterSettings(route_settings, request_body.AsDict());
+                    SetRouterSettings(router_settings, request_body.AsDict());
                 }
-            }            
+            }
+
+            transport_router::TransportRouter router(catalogue, router_settings);
             
-            serializator.SerializeData(catalogue, renderer);
+            serializator.SerializeData(catalogue, renderer, router);
         }
 
         void JsonReader::FillStatRequest(const json::Node& query) {
@@ -232,9 +233,8 @@ namespace transport_catalogue {
             stat_requests_.push_back(stat_request);
         }
 
-        void JsonReader::ProcessRequest(istream& input, ostream& output, TransportCatalogue& catalogue, map_renderer::MapRenderer& renderer, const transport_router::TransportRouter::RouteSettings& route_settings) {
+        void JsonReader::ProcessRequest(istream& input, ostream& output, TransportCatalogue& catalogue, map_renderer::MapRenderer& renderer, transport_router::TransportRouter& router) {
             json::Document request = json::Load(input);
-            serialization::SerializationSettings serialization_settings;
             map_renderer::RenderSettings render_settings;
 
             for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
@@ -242,13 +242,13 @@ namespace transport_catalogue {
                     string file_name = request_body.AsDict().at("file").AsString();
                     serialization::Serializator serializator;
                     serializator.SetSettings(move(file_name));                    
-                    serializator.DeserializeFile(catalogue, renderer);
+                    serializator.DeserializeFile(catalogue, renderer, router);
                 } else if (request_type == "stat_requests"s && !request_body.AsArray().empty()) {
                     request_handler::RequestHandler handler(catalogue, renderer);
                     for (const auto& query : request_body.AsArray()) {
                         FillStatRequest(query);
                     }
-                    json::Document document = StatRequestProcess(catalogue, stat_requests_, handler, route_settings);
+                    json::Document document = StatRequestProcess(catalogue, stat_requests_, handler, router);
                     json::Print(document, output);
                 } 
             }
@@ -257,7 +257,7 @@ namespace transport_catalogue {
         void JsonReader::RuntimeProcessRequest(TransportCatalogue &catalogue, std::istream &input, std::ostream &output, map_renderer::MapRenderer &renderer, const request_handler::RequestHandler &handler)
         {
             json::Document request = json::Load(input);
-            transport_router::TransportRouter::RouteSettings route_settings;
+            transport_router::RouterSettings router_settings;
 
             for (const auto& [request_type, request_body] : request.GetRoot().AsDict()) {
                 if (request_type == "base_requests"s && !request_body.AsArray().empty()) {
@@ -266,12 +266,13 @@ namespace transport_catalogue {
                     for (const auto& query : request_body.AsArray()) {
                         FillStatRequest(query);
                     }
-                    json::Document document = StatRequestProcess(catalogue, stat_requests_, handler, route_settings);
+                    transport_router::TransportRouter router(catalogue, router_settings);
+                    json::Document document = StatRequestProcess(catalogue, stat_requests_, handler, router);
                     json::Print(document, output);
                 } else if (request_type == "render_settings"s && !request_body.AsDict().empty()) {
                     SetRenderSettings(renderer, request_body.AsDict());
                 } else if (request_type == "routing_settings"s && !request_body.AsDict().empty()) {
-                    SetRouterSettings(route_settings, request_body.AsDict());
+                    SetRouterSettings(router_settings, request_body.AsDict());
                 }
             }
         }

@@ -13,6 +13,12 @@ svg.pb.h
 svg.pb.cc
 map_renderer.pb.h
 map_renderer.pb.cc
+graph.pb.h
+graph.pb.cc
+router.pb.h
+router.pb.cc
+transport_router.pb.h
+transport_router.pb.cc
 
 # Prerequisites
 *.d

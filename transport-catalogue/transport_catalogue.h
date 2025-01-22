@@ -42,9 +42,9 @@ namespace transport_catalogue {
             const std::map<std::string_view, const domain::Bus*>* GetBusesList() const;
             const std::unordered_map<std::string_view, const domain::Stop*>* GetStopsList() const;
 
-            const std::deque<domain::Bus>* GetAllBuses() const;
-            const std::deque<domain::Stop>* GetAllStops() const;
-            const std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher>* GetDistanceBetweenStopsList() const;
+            const std::deque<domain::Bus>& GetAllBuses() const;
+            const std::deque<domain::Stop>& GetAllStops() const;
+            const std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher>& GetDistanceBetweenStopsList() const;
 
         private:
             std::deque<domain::Bus> buses_;

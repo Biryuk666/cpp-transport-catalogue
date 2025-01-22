@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "map_renderer.proto";
+import "transport_router.proto";
 
 package transport_catalogue_proto;
 
@@ -12,9 +13,10 @@ message Stop {
 }
 
 message Bus {
-	string name = 1;
-	repeated uint32 stops = 2;
-	bool is_roundtrip = 3;
+	uint32 id = 1;
+	string name = 2;
+	repeated uint32 stops = 3;
+	bool is_roundtrip = 4;
 }
 
 message Distance {
@@ -31,5 +33,6 @@ message CatalogueData {
 
 message ProcessingData {
 	CatalogueData catalogue = 1;
-	RenderSettings render_settings = 2;
+	RenderSettingsData render_settings = 2;
+	RouterData router = 3;
 }

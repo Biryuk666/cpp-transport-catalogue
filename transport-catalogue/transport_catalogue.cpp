@@ -128,16 +128,16 @@ namespace transport_catalogue {
         return &stops_pointers_;
     }
 
-    const deque<domain::Bus>* TransportCatalogue::GetAllBuses() const {
-        return &buses_;
+    const deque<domain::Bus>& TransportCatalogue::GetAllBuses() const {
+        return buses_;
     }
 
-    const deque<domain::Stop>* TransportCatalogue::GetAllStops() const {
-        return &stops_;
+    const deque<domain::Stop>& TransportCatalogue::GetAllStops() const {
+        return stops_;
     }
 
-    const unordered_map<pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher>* TransportCatalogue::GetDistanceBetweenStopsList() const {
-        return &distance_between_stops_;
+    const unordered_map<pair<const domain::Stop*, const domain::Stop*>, int, detail::PairHasher>& TransportCatalogue::GetDistanceBetweenStopsList() const {
+        return distance_between_stops_;
     }
 
     size_t detail::PairHasher::operator()(const std::pair<const domain::Stop*, const domain::Stop*> pair_of_stops) const noexcept {

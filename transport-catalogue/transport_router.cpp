@@ -5,24 +5,25 @@ using namespace std;
 
 namespace transport_catalogue {
     namespace transport_router {
-        
-        TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const TransportRouter::RouteSettings& settings) : catalogue_(catalogue),  router_settings_(settings){
+        TransportRouter::TransportRouter(const TransportCatalogue& catalogue) : catalogue_(catalogue) {}
+        TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const RouterSettings& settings)
+            : catalogue_(catalogue), router_settings_(settings) {
             BuildAllRoutes();
         }
 
-        StopVertexes TransportRouter::GetStopVertexes(const domain::Stop* stop) const {
-            return stop_to_stop_vertexes_.at(stop);
+        StopVertex TransportRouter::GetStopVertex(const domain::Stop* stop) const {
+            return stop_to_stop_vertex_.at(stop);
         }
 
         optional<TransportRouter::RouteItems> TransportRouter::GetRouteByStops(string_view stop_from_name, string_view stop_to_name) const {
             RouteItems items_info;
             auto stop_from = catalogue_.GetStop(stop_from_name);
             auto stop_to = catalogue_.GetStop(stop_to_name);
-            auto router_info = router_->BuildRoute(GetStopVertexes(stop_from).wait, GetStopVertexes(stop_to).wait);
+            auto router_info = router_->BuildRoute(GetStopVertex(stop_from).wait, GetStopVertex(stop_to).wait);
             if (router_info) {
                 items_info.total_time = router_info.value().weight;
                 for (const auto& edge : router_info.value().edges) {
-                    items_info.items.push_back(edge_to_item_.at(edge));
+                    items_info.items.push_back(edge_id_to_item_.at(edge));
                 }
                 return items_info;
             } else {
@@ -30,17 +31,45 @@ namespace transport_catalogue {
             }
         }
 
+        void TransportRouter::SetRouterData(RouterData&& import_data) {
+            router_settings_ = move(import_data.settings);
+            graph_ = make_unique<graph::DirectedWeightedGraph<double>>(move(import_data.edges), move(import_data.incidence_lists));
+            router_ = make_unique<graph::Router<double>>(*graph_, move(import_data.routes_iternal_data));
+            stop_to_stop_vertex_ = move(import_data.stop_to_stop_vertex);
+            edge_id_to_item_ = move(import_data.edge_id_to_item);
+        }
+
+        const RouterSettings& TransportRouter::GetRouterSettings() const {
+            return router_settings_;
+        }
+
+        const std::unique_ptr<graph::DirectedWeightedGraph<double>>& TransportRouter::GetGraphPtr() const {
+            return graph_;
+        }
+
+        const std::unique_ptr<graph::Router<double>>& TransportRouter::GetRouterPtr() const {
+            return router_;
+        }
+
+        const std::map<const domain::Stop*, StopVertex>& TransportRouter::GetStopToStopVertexMap() const {
+            return stop_to_stop_vertex_;
+        }
+
+        const std::map<graph::EdgeId, Item>& TransportRouter::GetEdgeIdToItemMap() const {
+            return edge_id_to_item_;
+        }
+
         void TransportRouter::AddStopsToGraph() {
             graph::VertexId vertex_id = 0;
             for (const auto& [name, stop] : *catalogue_.GetStopsList()) {
-                stop_to_stop_vertexes_[stop] = {vertex_id, vertex_id + 1};
+                stop_to_stop_vertex_[stop] = {vertex_id, vertex_id + 1};
                 auto edge_id = graph_->AddEdge({vertex_id, vertex_id + 1, static_cast<double>(router_settings_.bus_wait_time)});
                 Item item;
                 item.type = "Wait"s;
                 item.name = name;
                 item.time = static_cast<double>(router_settings_.bus_wait_time);
                 item.span_count = 1;
-                edge_to_item_[edge_id] = move(item);
+                edge_id_to_item_[edge_id] = move(item);
                 vertex_id += 2;
             }
         }
@@ -51,10 +80,10 @@ namespace transport_catalogue {
             item.name = bus_name;
             item.time = distance /(router_settings_.bus_velocity *  1000 / 60);
             item.span_count = span;
-            auto vertexes_from = stop_to_stop_vertexes_.at(from);
-            auto vertexes_to = stop_to_stop_vertexes_.at(to);
-            auto edge_id = graph_->AddEdge({vertexes_from.bus, vertexes_to.wait, item.time});
-            edge_to_item_[edge_id] = move(item);
+            auto vertex_from = stop_to_stop_vertex_.at(from);
+            auto vertex_to = stop_to_stop_vertex_.at(to);
+            auto edge_id = graph_->AddEdge({vertex_from.bus, vertex_to.wait, item.time});
+            edge_id_to_item_[edge_id] = move(item);
         }
 
         void TransportRouter::AddRouteToGraph(const domain::Bus* bus) {

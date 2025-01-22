@@ -21,7 +21,7 @@ message RGBA {
 }
 
 message Color {
-	oneof colors{
+	oneof colors {
 		RGB rgb = 1;
 		RGBA rgba = 2;
 		string s_color = 3;

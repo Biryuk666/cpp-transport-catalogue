@@ -4,7 +4,7 @@ import "svg.proto";
 
 package transport_catalogue_proto;
 
-message RenderSettings {
+message RenderSettingsData {
 	double width = 1;
     double height = 2;
     double padding = 3;

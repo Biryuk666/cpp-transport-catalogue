@@ -20,11 +20,11 @@ int main(int argc, char* argv[]) {
     if (argc != 2) {
         PrintUsage();
         return 1;
-    }
+    }    
 
     TransportCatalogue catalogue;
     map_renderer::MapRenderer renderer;
-    transport_router::TransportRouter::RouteSettings route_settings;
+    transport_router::RouterSettings router_settings;
     json_reader::JsonReader reader;
 
     const std::string_view mode(argv[1]);
@@ -33,15 +33,16 @@ int main(int argc, char* argv[]) {
 
     if (mode == "make_base"sv) {    
         try {
-            reader.MakeBase(std::cin, catalogue, renderer, route_settings);
+            reader.MakeBase(std::cin, catalogue, renderer, router_settings);
         } catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;
             return 2;
         }
 
     } else if (mode == "process_requests"sv) {
-        try {            
-            reader.ProcessRequest(std::cin, std::cout, catalogue, renderer, route_settings);
+        try {
+            transport_router::TransportRouter router(catalogue);
+            reader.ProcessRequest(std::cin, std::cout, catalogue, renderer, router);
         } catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;
             return 3;

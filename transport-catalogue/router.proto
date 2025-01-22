@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package transport_catalogue_proto;
+
+message RouteIternalData {
+	double weight = 1;
+	oneof prev_edge {
+		bool empty = 2;
+		uint32 value = 3;
+	}
+}
+
+message OptionalRouteIternalData {
+	oneof data {
+		bool empty = 1;
+		RouteIternalData route_iternal_data = 2;
+	}
+}
+
+message VectorOfRouteIternalData {
+	repeated OptionalRouteIternalData vector_of_route_iternal_data = 1;
+}
+
+message Router {
+	repeated VectorOfRouteIternalData routes_iternal_data = 1;
+}

@@ -8,6 +8,9 @@ find_package(Threads REQUIRED)
  
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS svg.proto 
             map_renderer.proto 
+            graph.proto 
+            router.proto 
+            transport_router.proto 
             transport_catalogue.proto)
  
 set(UTILITY geo.h 
@@ -20,9 +23,12 @@ set(TRANSPORT_CATALOGUE transport_catalogue.h
         transport_catalogue.proto)
                       
 set(ROUTER graph.h 
-           router.h        
+           graph.proto
+           router.h 
+           router.proto
            transport_router.h 
-           transport_router.cpp)
+           transport_router.cpp 
+           transport_router.proto)
                               
 set(JSON json.h 
          json.cpp 
