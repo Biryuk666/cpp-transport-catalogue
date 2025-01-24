@@ -33,8 +33,8 @@ namespace transport_catalogue {
         class JsonReader {
         public:
             void MakeBase(std::istream& input, TransportCatalogue& catalogue, map_renderer::MapRenderer& renderer, transport_router::RouterSettings& router_settings);
-            void ProcessRequest(std::istream& input, std::ostream& output, TransportCatalogue& catalogue, map_renderer::MapRenderer& renderer, transport_router::TransportRouter& router);
-            void RuntimeProcessRequest(TransportCatalogue& catalogue, std::istream& input, std::ostream& out, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler);
+            void ProcessRequests(std::istream& input, std::ostream& output, TransportCatalogue& catalogue, map_renderer::MapRenderer& renderer, transport_router::TransportRouter& router);
+            void RuntimeProcessRequests(TransportCatalogue& catalogue, std::istream& input, std::ostream& out, map_renderer::MapRenderer& renderer, const request_handler::RequestHandler& handler);
 
         private:
             std::vector<StatRequest> stat_requests_;

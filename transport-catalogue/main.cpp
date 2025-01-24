@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     } else if (mode == "process_requests"sv) {
         try {
             transport_router::TransportRouter router(catalogue);
-            reader.ProcessRequest(std::cin, std::cout, catalogue, renderer, router);
+            reader.ProcessRequests(std::cin, std::cout, catalogue, renderer, router);
         } catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;
             return 3;

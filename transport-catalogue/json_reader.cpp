@@ -233,7 +233,7 @@ namespace transport_catalogue {
             stat_requests_.push_back(stat_request);
         }
 
-        void JsonReader::ProcessRequest(istream& input, ostream& output, TransportCatalogue& catalogue, map_renderer::MapRenderer& renderer, transport_router::TransportRouter& router) {
+        void JsonReader::ProcessRequests(istream& input, ostream& output, TransportCatalogue& catalogue, map_renderer::MapRenderer& renderer, transport_router::TransportRouter& router) {
             json::Document request = json::Load(input);
             map_renderer::RenderSettings render_settings;
 
@@ -254,7 +254,7 @@ namespace transport_catalogue {
             }
         }
 
-        void JsonReader::RuntimeProcessRequest(TransportCatalogue &catalogue, std::istream &input, std::ostream &output, map_renderer::MapRenderer &renderer, const request_handler::RequestHandler &handler)
+        void JsonReader::RuntimeProcessRequests(TransportCatalogue &catalogue, std::istream &input, std::ostream &output, map_renderer::MapRenderer &renderer, const request_handler::RequestHandler &handler)
         {
             json::Document request = json::Load(input);
             transport_router::RouterSettings router_settings;
